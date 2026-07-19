@@ -1,4 +1,4 @@
-# AgSure Intelligence v0.1 scope
+# AgSure Intelligence v0.3 scope
 
 ## Decision question
 
@@ -18,7 +18,7 @@ abundant than its recent five-year baseline?
 - Point-in-time source and revision metadata.
 - A transparent supply-pressure heuristic.
 
-## Excluded from v0.1
+## Excluded from v0.3
 
 - Cash-bid recommendations.
 - Futures or automated trading.
@@ -27,6 +27,10 @@ abundant than its recent five-year baseline?
 - Machine-learning yield forecasts.
 - Claims at town-level precision unsupported by official data.
 - Applying the barley model weights to other crops without validation.
+- Spring-wheat-specific stocks or treating wheat excluding durum as spring wheat.
+- Total use, stocks-to-use, weather, buyer bids, or price forecasts in the
+  official stocks vertical slice.
+- PostgreSQL changes, deployment, town-level analysis, and visual redesign.
 
 ## Completion criteria
 

@@ -1,3 +1,4 @@
+from decimal import Decimal
 from pathlib import Path
 
 import pandas as pd
@@ -7,11 +8,15 @@ import streamlit as st
 from agsure.analysis import calculate_supply_pressure
 from agsure.commodities import COMMODITIES
 from agsure.io import load_observations
+from agsure.stocks import compare_same_snapshot
 
 
 ROOT = Path(__file__).parents[2]
 SYNTHETIC_PATH = ROOT / "sample_data" / "crops_synthetic.csv"
-STATCAN_PATH = ROOT / "data" / "processed" / "statcan_crop_production.csv"
+STATCAN_PRODUCTION_PATH = (
+    ROOT / "data" / "processed" / "statcan_crop_production.csv"
+)
+STATCAN_STOCKS_PATH = ROOT / "data" / "processed" / "statcan_crop_stocks.csv"
 METRIC_LABELS = {
     "seeded-area": "Seeded area",
     "harvested-area": "Harvested area",
@@ -83,19 +88,21 @@ def show_synthetic() -> None:
         st.dataframe(components, hide_index=True, width="stretch")
 
 
-def show_statcan() -> None:
+def show_statcan_production() -> None:
     st.info(
         "Official Statistics Canada source. Published observations in this table "
         "are estimates and may be revised."
     )
-    if not STATCAN_PATH.exists():
+    if not STATCAN_PRODUCTION_PATH.exists():
         st.warning(
             "The processed Statistics Canada cache is not available. Run "
             "`PYTHONPATH=src python -m agsure.statcan` and reload the dashboard."
         )
         return
 
-    frame = pd.read_csv(STATCAN_PATH, dtype=str, keep_default_na=False)
+    frame = pd.read_csv(
+        STATCAN_PRODUCTION_PATH, dtype=str, keep_default_na=False
+    )
     selected_slug = st.selectbox(
         "Commodity",
         options=list(COMMODITIES),
@@ -178,21 +185,169 @@ def show_statcan() -> None:
         )
 
 
+def _format_pct(value: Decimal | None) -> str:
+    return "Not available" if value is None else f"{value:+.1f}%"
+
+
+def show_statcan_stocks() -> None:
+    st.info(
+        "Official Statistics Canada stock estimates. Comparisons are descriptive "
+        "and are not price forecasts or recommendations."
+    )
+    if not STATCAN_STOCKS_PATH.exists():
+        st.warning(
+            "The processed Statistics Canada stocks cache is not available. Run "
+            "`PYTHONPATH=src python -m agsure.statcan_stocks` and reload the "
+            "dashboard."
+        )
+        return
+
+    frame = pd.read_csv(STATCAN_STOCKS_PATH, dtype=str, keep_default_na=False)
+    commodity_options = list(dict.fromkeys(frame["commodity"]))
+    selected_slug = st.selectbox(
+        "Commodity",
+        options=commodity_options,
+        format_func=lambda slug: COMMODITIES[slug].display_name,
+    )
+    geography = st.selectbox(
+        "Geography",
+        options=[
+            item
+            for item in ("Canada", "Alberta", "Saskatchewan", "Manitoba")
+            if item in set(frame["geography"])
+        ],
+    )
+    available_stock_types = list(
+        dict.fromkeys(
+            frame.loc[frame["geography"] == geography, "stock_type"].tolist()
+        )
+    )
+    stock_type = st.selectbox("Stock type", options=available_stock_types)
+    snapshot_options = [
+        item
+        for item in ("March 31", "July 31", "December 31")
+        if item in set(frame["snapshot_period"])
+    ]
+    snapshot_period = st.selectbox("Snapshot period", options=snapshot_options)
+
+    selected = frame[
+        (frame["commodity"] == selected_slug)
+        & (frame["geography"] == geography)
+        & (frame["stock_type"] == stock_type)
+        & (frame["snapshot_period"] == snapshot_period)
+    ].copy()
+    if selected.empty:
+        st.warning("No source rows match the selected stock series.")
+        return
+
+    observations = {
+        row["reference_period"]: (
+            Decimal(row["normalized_tonnes"])
+            if row["normalized_tonnes"]
+            else None
+        )
+        for _, row in selected.iterrows()
+    }
+    try:
+        comparison = compare_same_snapshot(observations)
+    except ValueError as exc:
+        st.warning(str(exc))
+        return
+
+    latest = selected[
+        selected["reference_period"] == comparison.reference_period
+    ].iloc[0]
+    first, second, third, fourth = st.columns(4)
+    first.metric("Latest stocks", f"{comparison.latest_tonnes:,.0f} tonnes")
+    second.metric(
+        "Year-over-year change", _format_pct(comparison.year_over_year_pct)
+    )
+    third.metric(
+        "Same-period five-year average",
+        "Not available"
+        if comparison.five_year_average_tonnes is None
+        else f"{comparison.five_year_average_tonnes:,.0f} tonnes",
+    )
+    fourth.metric(
+        "Deviation from five-year average",
+        _format_pct(comparison.five_year_deviation_pct),
+    )
+
+    chart_frame = selected.copy()
+    chart_frame["value_numeric"] = pd.to_numeric(
+        chart_frame["normalized_tonnes"], errors="coerce"
+    )
+    chart_frame = chart_frame.dropna(subset=["value_numeric"]).sort_values(
+        "reference_date"
+    )
+    st.subheader(f"{snapshot_period} stocks across years")
+    figure = px.line(
+        chart_frame,
+        x="reference_date",
+        y="value_numeric",
+        markers=True,
+        labels={
+            "reference_date": "Reference date",
+            "value_numeric": "Stocks (tonnes)",
+        },
+    )
+    st.plotly_chart(figure, width="stretch")
+    st.caption(
+        f"Publisher: {latest['publisher']} · Table: {latest['source_table']} · "
+        f"Stock type: {latest['stock_type']} · Unit: {latest['normalized_unit']} · "
+        f"Release: {latest['release_date']} · Retrieved: {latest['retrieved_at']}"
+    )
+    st.warning(
+        "No supply-pressure score is calculated from this dataset. These stock "
+        "comparisons do not include total use and are not price forecasts."
+    )
+    with st.expander("Latest observation provenance"):
+        st.dataframe(
+            latest[
+                [
+                    "reference_period",
+                    "reference_date",
+                    "source_crop",
+                    "original_value",
+                    "original_unit",
+                    "scalar_factor",
+                    "normalized_tonnes",
+                    "normalized_unit",
+                    "observation_status",
+                    "status_marker",
+                    "symbol",
+                    "vector",
+                    "coordinate",
+                    "dguid",
+                    "terminated",
+                ]
+            ].to_frame("value"),
+            width="stretch",
+        )
+    st.caption(
+        "Spring-wheat-specific stocks are unavailable from table 32-10-0007-01. "
+        "AgSure does not treat wheat excluding durum as spring wheat."
+    )
+
+
 st.set_page_config(page_title="AgSure Intelligence", page_icon="🌾", layout="wide")
 st.title("AgSure Intelligence")
 source = st.selectbox(
     "Data source",
-    options=("synthetic", "statcan"),
+    options=("synthetic", "statcan-production", "statcan-stocks"),
     format_func=lambda value: {
         "synthetic": "Synthetic demonstration data",
-        "statcan": "Official Statistics Canada crop production",
+        "statcan-production": "Official Statistics Canada crop production",
+        "statcan-stocks": "Official Statistics Canada crop stocks",
     }[value],
 )
 
 if source == "synthetic":
     show_synthetic()
+elif source == "statcan-production":
+    show_statcan_production()
 else:
-    show_statcan()
+    show_statcan_stocks()
 
 with st.expander("Methodology and limitations"):
     st.markdown((ROOT / "docs" / "methodology.md").read_text(encoding="utf-8"))

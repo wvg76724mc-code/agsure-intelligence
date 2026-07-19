@@ -58,3 +58,40 @@ and normalized values are deliberately separate.
 Scalar factors are applied before unit conversion. Yield is converted from
 kilograms per hectare to tonnes per hectare by multiplying by `0.001`. The
 source value and unit remain available to reproduce that transformation.
+
+## Statistics Canada stock observations
+
+`data/processed/statcan_crop_stocks.csv` is a separate long-form artifact. It
+is never adapted into the synthetic score input.
+
+| Field | Meaning |
+|---|---|
+| `publisher` | Official publisher (`Statistics Canada`) |
+| `source_table` | Statistics Canada table number (`32-10-0007-01`) |
+| `product_id` | Statistics Canada product ID (`32100007`) |
+| `source_url` | Validated official full-table CSV ZIP URL |
+| `release_date` | Release date shown on the table page at retrieval |
+| `retrieved_at` | UTC retrieval timestamp in ISO 8601 format |
+| `reference_period` | Unchanged source `REF_DATE` (`YYYY-03`, `YYYY-07`, or `YYYY-12`) |
+| `reference_date` | Source-defined month-end snapshot as an ISO date |
+| `snapshot_period` | `March 31`, `July 31`, or `December 31` |
+| `commodity` | AgSure slug: `barley`, `canola`, `durum-wheat`, or `dry-peas` |
+| `source_crop` | Unchanged Statistics Canada crop label |
+| `geography` | Unchanged source geography label |
+| `dguid` | Statistics Canada dissemination geography identifier |
+| `stock_type` | Unchanged source type-of-stock label |
+| `original_value` | Unscaled source `VALUE`; blank stays blank |
+| `original_unit` | Unchanged source `UOM` (`Metric tonnes`) |
+| `scalar_factor` | Unchanged source `SCALAR_FACTOR` |
+| `normalized_tonnes` | Scalar-adjusted tonnes; blank for unpublished values |
+| `normalized_unit` | Internal metric unit (`tonnes`) |
+| `observation_status` | Statistical nature of the value (`estimated` or `modelled`) |
+| `status_marker` | Unchanged source `STATUS`, including `..` and `x` |
+| `symbol` | Unchanged source `SYMBOL`, including revision markers |
+| `terminated` | Unchanged source `TERMINATED` marker |
+| `decimals` | Source display precision |
+| `vector` | Statistics Canada vector identifier |
+| `coordinate` | Statistics Canada cube coordinate |
+
+Spring wheat is intentionally absent: the table's “Wheat, all excluding durum
+wheat” series is not equivalent to spring wheat.
