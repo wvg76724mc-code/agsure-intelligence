@@ -1,5 +1,24 @@
 # Data dictionary
 
+## Unified overview view model
+
+`agsure.unified_overview` reads the four normalized or derived local artifacts
+and returns immutable presentation objects; it does not import Streamlit or
+alter source rows. A displayed observation contains `label`, a `Decimal` value
+or explicit absence, `unit`, `reference_period`, optional `crop_year`,
+`geography`, `source_table`, `source_url`, `release_date`, `retrieved_at`,
+`publisher`, `observation_kind`, exact `source_label`, and the unchanged source
+row as `provenance`.
+
+`observation_kind` distinguishes `Official published observation`, `Official
+input to derived calculation`, and `Derived official calculation`. Synthetic
+demonstration rows do not enter this model. `SeriesView.reason` records why an
+artifact or exact series is unavailable. `identity` records the selected
+geography, measure or stock type, and snapshot boundary. Artifact contracts
+reject missing required columns, duplicate normalized keys, wrong source
+tables, aggregate crop aliases, wrong units, and inconsistent reference,
+snapshot, or crop-year identities.
+
 ## Demonstration input
 
 | Field | Meaning | Unit |
@@ -170,7 +189,7 @@ normalized supply-and-disposition CSV and is never used by the synthetic score.
 | `reconciliation_status` | `reconciled`, `unreconciled`, or `not_available` |
 | `calculation_status` | `calculated` or `unavailable` |
 | `calculation_reason` | Explicit reason when calculation is unavailable |
-| `formula`, `methodology_version` | Reproducible method identity (`0.5.0`) |
+| `formula`, `methodology_version` | Reproducible v0.5 calculation identity (`0.5.0`, intentionally retained) |
 
 Each of the prefixes `ending_stocks_source_`, `total_exports_source_`,
 `domestic_disappearance_source_`, and `total_disposition_source_` is followed by

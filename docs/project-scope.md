@@ -1,10 +1,10 @@
-# AgSure Intelligence v0.5 scope
+# AgSure Intelligence v0.6 scope
 
 ## Decision question
 
-What were the transparent historical stocks-to-use ratios for barley, canola,
-durum wheat, and dry peas in completed Canada-level August–July crop years,
-while preserving all earlier official and synthetic views?
+What is the clearest official overview of production, stocks, supply and
+disposition, and completed-crop-year stocks-to-use for a selected commodity,
+without weakening the identities and guardrails established in v0.2–v0.5?
 
 ## Included
 
@@ -25,8 +25,18 @@ while preserving all earlier official and synthetic views?
   stocks, exports, and domestic disappearance measures in normalized tonnes.
 - Input-level provenance, explicit unavailability, balance reconciliation, and
   strict consecutive-year dashboard comparisons.
+- A unified overview as the default dashboard source with latest snapshot,
+  production, stocks, supply-and-disposition, stocks-to-use, and availability
+  and provenance sections.
+- A testable, Streamlit-free service/view-model using existing local processed
+  artifacts, `Decimal` values, deterministic latest selection, and explicit
+  duplicate, source, geography, unit, crop, and period validation.
+- Province controls for geographically appropriate production and stocks only;
+  Canada-only values stay visibly Canada-level.
+- Explicit unavailable sections rather than proxy series or older-value
+  substitution, including spring-wheat limitations.
 
-## Excluded from v0.5
+## Excluded from v0.6
 
 - Cash-bid recommendations.
 - Futures or automated trading.
@@ -48,6 +58,8 @@ while preserving all earlier official and synthetic views?
 - A real-data supply-pressure score, weather, cash bids, prices, price
   forecasting, provincial or town-level ratios, PostgreSQL changes, deployment,
   visual redesign, or AI-generated narrative.
+- New official-source downloads solely for overview rendering, ingestion-module
+  consolidation, deletion of specialist views, or broad dashboard restyling.
 
 ## Completion criteria
 

@@ -3,6 +3,25 @@
 Only official, licensed, and documented sources may feed production indicators.
 This registry distinguishes implemented and planned connectors.
 
+## Unified overview use in v0.6
+
+The overview is a read-only presentation of the existing processed artifacts;
+it is not another ingestion pipeline and does not redownload a source. The
+production table is available for all five supported commodities where the
+exact member exists. Stocks, supply and disposition, and derived stocks-to-use
+are available for barley, canola, durum wheat, and dry peas. They are explicitly
+unavailable for spring wheat because neither aggregate wheat nor wheat excluding
+durum is an exact spring-wheat member.
+
+For every exact identity, the overview selects the greatest reference period
+deterministically and does not fall back when that newest row is blank or
+unusable. Stocks retain one source stock type and compare one month-end snapshot
+across years. Supply and disposition retain one exact source measure and one
+cumulative snapshot across years. Stocks-to-use retains exact Canada, July,
+completed August–July crop years. The displayed release and retrieval dates
+describe the local cube vintage; historical rows are the latest revised values
+in that vintage, not a point-in-time archive.
+
 ## Statistics Canada
 
 ### Principal field-crop area, yield, and production

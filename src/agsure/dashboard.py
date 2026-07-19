@@ -1,4 +1,5 @@
 from decimal import Decimal
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -11,20 +12,24 @@ from agsure.io import load_observations
 from agsure.stocks import compare_same_snapshot
 from agsure.statcan_supply_disposition import MEASURES as SUPPLY_DISPOSITION_MEASURES
 from agsure.stocks_to_use import FORMULA, summarize_history
+from agsure.unified_overview import (
+    ArtifactPaths,
+    DisplayObservation,
+    SeriesView,
+    UNAVAILABLE,
+    build_overview,
+)
 
 
 ROOT = Path(__file__).parents[2]
 SYNTHETIC_PATH = ROOT / "sample_data" / "crops_synthetic.csv"
-STATCAN_PRODUCTION_PATH = (
-    ROOT / "data" / "processed" / "statcan_crop_production.csv"
+PROCESSED_DIR = Path(
+    os.environ.get("AGSURE_PROCESSED_DIR", ROOT / "data" / "processed")
 )
-STATCAN_STOCKS_PATH = ROOT / "data" / "processed" / "statcan_crop_stocks.csv"
-STATCAN_SUPPLY_DISPOSITION_PATH = (
-    ROOT / "data" / "processed" / "statcan_supply_disposition.csv"
-)
-STATCAN_STOCKS_TO_USE_PATH = (
-    ROOT / "data" / "processed" / "statcan_stocks_to_use.csv"
-)
+STATCAN_PRODUCTION_PATH = PROCESSED_DIR / "statcan_crop_production.csv"
+STATCAN_STOCKS_PATH = PROCESSED_DIR / "statcan_crop_stocks.csv"
+STATCAN_SUPPLY_DISPOSITION_PATH = PROCESSED_DIR / "statcan_supply_disposition.csv"
+STATCAN_STOCKS_TO_USE_PATH = PROCESSED_DIR / "statcan_stocks_to_use.csv"
 METRIC_LABELS = {
     "seeded-area": "Seeded area",
     "harvested-area": "Harvested area",
@@ -668,11 +673,293 @@ def show_statcan_stocks_to_use() -> None:
         st.dataframe(latest[provenance_fields].to_frame("value"), width="stretch")
 
 
+def _display_value(item: DisplayObservation) -> str:
+    if item.value is None:
+        return "Not available"
+    if item.unit == "percent":
+        return f"{item.value:,.1f}%"
+    if item.unit == "tonnes per hectare":
+        return f"{item.value:,.3f} {item.unit}"
+    return f"{item.value:,.0f} {item.unit}"
+
+
+def _observation_caption(item: DisplayObservation) -> str:
+    period = (
+        f"Crop year {item.crop_year} · Reference period {item.reference_period}"
+        if item.crop_year
+        else f"Reference period {item.reference_period}"
+    )
+    return (
+        f"{period} · Unit: {item.unit} · Geography: {item.geography} · "
+        f"Source: {item.source_table} · Release: {item.release_date} · "
+        f"Retrieved: {item.retrieved_at} · {item.observation_kind}"
+    )
+
+
+def _show_latest(item: DisplayObservation) -> None:
+    st.metric(item.label, _display_value(item))
+    st.caption(_observation_caption(item))
+    st.markdown(f"[Open official source]({item.source_url})")
+    with st.expander(f"{item.label} provenance · {item.reference_period}"):
+        st.caption(f"Exact source identity: {item.source_label}")
+        st.dataframe(
+            pd.Series(dict(item.provenance), name="value").to_frame(),
+            width="stretch",
+        )
+
+
+def _show_unavailable(series: SeriesView) -> None:
+    st.warning(series.reason or UNAVAILABLE)
+    st.caption(f"Requested identity: {series.identity}")
+
+
+def _series_chart(series: SeriesView, title: str) -> None:
+    if not series.observations:
+        _show_unavailable(series)
+        return
+    chart_frame = pd.DataFrame(
+        {
+            "reference_period": [item.reference_period for item in series.observations],
+            "value": [
+                None if item.value is None else float(item.value)
+                for item in series.observations
+            ],
+            "crop_year": [item.crop_year for item in series.observations],
+            "unit": [item.unit for item in series.observations],
+            "geography": [item.geography for item in series.observations],
+            "source_table": [item.source_table for item in series.observations],
+            "release_date": [item.release_date for item in series.observations],
+            "retrieved_at": [item.retrieved_at for item in series.observations],
+        }
+    ).dropna(subset=["value"])
+    if chart_frame.empty:
+        _show_unavailable(series)
+        return
+    st.subheader(title)
+    figure = px.line(
+        chart_frame,
+        x="reference_period",
+        y="value",
+        markers=True,
+        hover_data=(
+            "crop_year",
+            "unit",
+            "geography",
+            "source_table",
+            "release_date",
+            "retrieved_at",
+        ),
+        labels={
+            "reference_period": "Reference period",
+            "value": series.observations[-1].unit,
+        },
+    )
+    st.plotly_chart(figure, width="stretch")
+    if series.latest is not None:
+        _show_latest(series.latest)
+    if not series.available:
+        _show_unavailable(series)
+
+
+def show_unified_overview() -> None:
+    st.info(
+        "Unified official commodity overview. Official published observations, "
+        "derived official calculations, and synthetic demonstrations remain "
+        "strictly separate. No real-data supply-pressure score is calculated."
+    )
+    paths = ArtifactPaths(
+        production=STATCAN_PRODUCTION_PATH,
+        stocks=STATCAN_STOCKS_PATH,
+        supply_disposition=STATCAN_SUPPLY_DISPOSITION_PATH,
+        stocks_to_use=STATCAN_STOCKS_TO_USE_PATH,
+    )
+    commodity = st.selectbox(
+        "Commodity",
+        options=list(COMMODITIES),
+        format_func=lambda slug: COMMODITIES[slug].display_name,
+        key="unified_commodity",
+    )
+    try:
+        initial = build_overview(paths, commodity)
+    except ValueError as exc:
+        st.error(f"Unified overview validation failed: {exc}")
+        return
+    geography = st.selectbox(
+        "Production and stocks geography",
+        options=initial.geography_options,
+        help=(
+            "This selection applies only to production and stocks. Supply and "
+            "disposition and stocks-to-use remain explicitly Canada-level."
+        ),
+        key="unified_geography",
+    )
+    try:
+        choices = build_overview(paths, commodity, geography)
+    except ValueError as exc:
+        st.error(f"Unified overview validation failed: {exc}")
+        return
+
+    stock_type = None
+    stock_snapshot = None
+    if choices.stock_type_options:
+        stock_type = st.selectbox(
+            "Stocks type",
+            options=choices.stock_type_options,
+            index=choices.stock_type_options.index(choices.stock_type),
+            key="unified_stock_type",
+        )
+        stock_choices = build_overview(
+            paths, commodity, geography, stock_type=stock_type
+        )
+        if stock_choices.stock_snapshot_options:
+            stock_snapshot = st.selectbox(
+                "Stocks comparison period",
+                options=stock_choices.stock_snapshot_options,
+                index=stock_choices.stock_snapshot_options.index(
+                    stock_choices.stock_snapshot
+                ),
+                key="unified_stock_snapshot",
+            )
+
+    supply_measure = None
+    supply_snapshot = None
+    if choices.supply_measure_options:
+        supply_measure = st.selectbox(
+            "Supply-and-disposition measure",
+            options=choices.supply_measure_options,
+            index=choices.supply_measure_options.index(choices.supply_measure),
+            key="unified_supply_measure",
+        )
+        supply_choices = build_overview(
+            paths, commodity, geography, supply_measure=supply_measure
+        )
+        if supply_choices.supply_snapshot_options:
+            supply_snapshot = st.selectbox(
+                "Supply-and-disposition comparison period",
+                options=supply_choices.supply_snapshot_options,
+                index=supply_choices.supply_snapshot_options.index(
+                    supply_choices.supply_snapshot
+                ),
+                key="unified_supply_snapshot",
+            )
+
+    try:
+        overview = build_overview(
+            paths,
+            commodity,
+            geography,
+            stock_type=stock_type,
+            stock_snapshot=stock_snapshot,
+            supply_measure=supply_measure,
+            supply_snapshot=supply_snapshot,
+        )
+    except ValueError as exc:
+        st.error(f"Unified overview validation failed: {exc}")
+        return
+
+    st.caption(
+        "Geography boundary: production and stocks below use "
+        f"{geography}; supply and disposition and stocks-to-use use Canada."
+    )
+    tabs = st.tabs(
+        (
+            "Latest snapshot",
+            "Production",
+            "Stocks",
+            "Supply and disposition",
+            "Stocks-to-use",
+            "Data availability and provenance",
+        )
+    )
+    with tabs[0]:
+        st.subheader(f"Latest official indicators · {COMMODITIES[commodity].display_name}")
+        for offset in range(0, len(overview.snapshot), 4):
+            columns = st.columns(4)
+            for column, item in zip(columns, overview.snapshot[offset : offset + 4]):
+                with column:
+                    _show_latest(item)
+        unavailable_snapshot = [
+            series for series in (*overview.production.values(), overview.stocks, overview.stocks_to_use)
+            if not series.available
+        ]
+        for series in unavailable_snapshot:
+            _show_unavailable(series)
+
+    with tabs[1]:
+        metric = st.selectbox(
+            "Production measure",
+            options=list(METRIC_LABELS),
+            format_func=lambda value: METRIC_LABELS[value],
+            index=3,
+            key="unified_production_metric",
+        )
+        _series_chart(
+            overview.production[metric],
+            f"{METRIC_LABELS[metric]} history · {geography}",
+        )
+
+    with tabs[2]:
+        st.caption(
+            f"Exact series: {overview.stocks.identity}. Only "
+            f"{overview.stock_snapshot or 'the selected'} snapshots are compared."
+        )
+        _series_chart(overview.stocks, "Same-snapshot stocks history")
+
+    with tabs[3]:
+        st.warning(
+            "Canada-level only. This section does not describe the selected "
+            f"{geography} geography. March, July, and December are cumulative "
+            "snapshots and must not be added."
+        )
+        st.caption(
+            f"Exact series: {overview.supply_disposition.identity}. Only one "
+            "measure and one snapshot period are compared across years."
+        )
+        _series_chart(
+            overview.supply_disposition,
+            "Same-measure, same-snapshot supply-and-disposition history",
+        )
+
+    with tabs[4]:
+        st.warning(
+            "Canada-level July observations for completed August–July crop years "
+            "only. This derived official calculation is not a forecast, trading "
+            "signal, recommendation, or validated predictor."
+        )
+        _series_chart(overview.stocks_to_use, "Historical July stocks-to-use")
+
+    with tabs[5]:
+        availability = []
+        for name, series in (
+            ("Production", overview.production["production"]),
+            ("Stocks", overview.stocks),
+            ("Supply and disposition", overview.supply_disposition),
+            ("Stocks-to-use", overview.stocks_to_use),
+        ):
+            availability.append(
+                {
+                    "section": name,
+                    "status": "Available" if series.available else "Unavailable",
+                    "selected identity": series.identity,
+                    "reason": series.reason,
+                }
+            )
+        st.dataframe(pd.DataFrame(availability), hide_index=True, width="stretch")
+        for name, error in overview.artifact_errors.items():
+            st.warning(f"{name}: {error}")
+        st.markdown(
+            "Historical official rows represent the latest revised cube vintage "
+            "at retrieval, not a point-in-time archive. Values are never "
+            "interpolated, repaired, or replaced with aggregate wheat members."
+        )
+
+
 st.set_page_config(page_title="AgSure Intelligence", page_icon="🌾", layout="wide")
 st.title("AgSure Intelligence")
 source = st.selectbox(
     "Data source",
     options=(
+        "unified",
         "synthetic",
         "statcan-production",
         "statcan-stocks",
@@ -680,6 +967,7 @@ source = st.selectbox(
         "statcan-stocks-to-use",
     ),
     format_func=lambda value: {
+        "unified": "Unified commodity overview",
         "synthetic": "Synthetic demonstration data",
         "statcan-production": "Official Statistics Canada crop production",
         "statcan-stocks": "Official Statistics Canada crop stocks",
@@ -690,7 +978,9 @@ source = st.selectbox(
     }[value],
 )
 
-if source == "synthetic":
+if source == "unified":
+    show_unified_overview()
+elif source == "synthetic":
     show_synthetic()
 elif source == "statcan-production":
     show_statcan_production()

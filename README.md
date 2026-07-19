@@ -1,7 +1,7 @@
 # AgSure Intelligence
 
 AgSure Intelligence is a transparent, source-traceable agricultural market
-intelligence project. Version 0.5 tracks five Prairie crops:
+intelligence project. Version 0.6 tracks five Prairie crops:
 
 - Barley
 - Canola
@@ -14,14 +14,24 @@ Barley is the first fully implemented analytical vertical. It asks:
 > Is the Southern Alberta barley supply outlook becoming tighter or more
 > abundant than its recent historical baseline?
 
-The dashboard can show synthetic demonstration history, official Statistics
-Canada production data, crop stocks, or a narrow Canada-level
-supply-and-disposition monitoring slice, or completed-crop-year official
-stocks-to-use ratios. Official observations and calculations are displayed for
-monitoring only; they are not forecasts, trading signals, recommendations, or
-validated predictors.
+The dashboard opens on a unified official commodity overview while retaining
+the synthetic demonstration and every detailed production, stocks,
+supply-and-disposition, and stocks-to-use view. Official observations and
+calculations are displayed for monitoring only; they are not forecasts, trading
+signals, recommendations, or validated predictors.
 
 ## What works now
+
+- Presents the available official production, stocks, supply-and-disposition,
+  and stocks-to-use histories together for one commodity, with latest values,
+  exact periods, units, geography, source links, releases, retrieval vintages,
+  and expandable row provenance.
+- Applies the geography selector only to production and stocks. Canada-only
+  supply-and-disposition and stocks-to-use values remain labelled Canada and
+  never inherit a selected province.
+- Shows explicit unavailable states. Spring wheat is populated from its exact
+  production member only; aggregate wheat members are never substituted for
+  absent stocks, supply-and-disposition, or stocks-to-use series.
 
 - Loads a normalized multi-commodity annual dataset.
 - Calculates five-year baselines and current deviations.
@@ -95,8 +105,11 @@ and parsing use the Python standard library. The stocks command writes
 provenance pattern. The supply-and-disposition command writes
 `data/processed/statcan_supply_disposition.csv`. The stocks-to-use command uses
 that existing normalized file without downloading anything and writes
-`data/processed/statcan_stocks_to_use.csv`. Both generated CSVs remain local and
-Git-ignored.
+`data/processed/statcan_stocks_to_use.csv`. All generated processed CSVs remain
+local and Git-ignored. The overview reads these artifacts and never triggers
+ingestion or a download. For fixture or deployment testing,
+`AGSURE_PROCESSED_DIR` may point the dashboard at another directory containing
+the four standard processed filenames.
 
 For PostgreSQL/PostGIS:
 
@@ -124,13 +137,22 @@ This barley model is initially a documented heuristic, not a validated price for
 Statistics Canada tables 32-10-0359-01, 32-10-0007-01, and 32-10-0013-01 are
 implemented official-source connectors. Table 32-10-0013-01 says the selected
 crops use an August–July crop year and its March, July, and December periods are
-cumulative over that crop year. Version 0.5 uses July only to calculate:
+cumulative over that crop year. Version 0.5 introduced the July-only calculation
+retained by v0.6:
 `Total ending stocks / (Total exports + Total domestic disappearance) * 100`.
 `Total disposition` is not the denominator because it includes ending stocks.
 The current cube has no spring-wheat-specific supply-and-disposition member;
 AgSure does not map `All wheat` or `Wheat, excluding durum` to spring wheat.
 Weather, bids, prices, price forecasts, and a real-data supply-pressure score
 remain out of scope.
+
+The v0.6 overview selects the greatest source reference period for each exact
+series identity. If that newest source row is unpublished or cannot be
+calculated, the value is unavailable; an older published row is not silently
+substituted. Stocks histories contain one exact stock type and snapshot period.
+Supply-and-disposition histories contain one exact measure and snapshot period.
+Stocks-to-use remains Canada-level, July-only, and restricted to completed
+August–July crop years.
 
 The initial approved Statistics Canada tables and ingestion requirements are
 listed in [`docs/data-sources.md`](docs/data-sources.md).

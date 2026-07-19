@@ -1,0 +1,8 @@
+publisher,source_table,source_url,release_date,retrieved_at,reference_period,reference_date,snapshot_period,commodity,source_crop,geography,stock_type,normalized_tonnes,normalized_unit
+Statistics Canada,32-10-0007-01,https://example.test/stocks,2026-05-01,2026-05-02T00:00:00Z,2025-03,2025-03-31,March 31,barley,Barley,Canada,"Farm and commercial, total",200,tonnes
+Statistics Canada,32-10-0007-01,https://example.test/stocks,2026-05-01,2026-05-02T00:00:00Z,2026-03,2026-03-31,March 31,barley,Barley,Canada,"Farm and commercial, total",220,tonnes
+Statistics Canada,32-10-0007-01,https://example.test/stocks,2026-05-01,2026-05-02T00:00:00Z,2025-03,2025-03-31,March 31,barley,Barley,Alberta,Farm stocks,80,tonnes
+Statistics Canada,32-10-0007-01,https://example.test/stocks,2026-05-01,2026-05-02T00:00:00Z,2026-03,2026-03-31,March 31,barley,Barley,Alberta,Farm stocks,90,tonnes
+Statistics Canada,32-10-0007-01,https://example.test/stocks,2026-05-01,2026-05-02T00:00:00Z,2026-03,2026-03-31,March 31,canola,Canola (rapeseed),Canada,"Farm and commercial, total",300,tonnes
+Statistics Canada,32-10-0007-01,https://example.test/stocks,2026-05-01,2026-05-02T00:00:00Z,2026-03,2026-03-31,March 31,durum-wheat,"Wheat, durum",Canada,"Farm and commercial, total",400,tonnes
+Statistics Canada,32-10-0007-01,https://example.test/stocks,2026-05-01,2026-05-02T00:00:00Z,2026-03,2026-03-31,March 31,dry-peas,"Peas, dry",Canada,"Farm and commercial, total",500,tonnes
