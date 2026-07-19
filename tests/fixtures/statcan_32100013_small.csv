@@ -1,0 +1,29 @@
+REF_DATE,GEO,DGUID,Type of crop,Supply and disposition of grains,UOM,UOM_ID,SCALAR_FACTOR,SCALAR_ID,VECTOR,COORDINATE,VALUE,STATUS,SYMBOL,TERMINATED,DECIMALS
+2025-03,Canada,2016A000011124,Barley,Total supplies,Metric tonnes,214,thousands,3,v3001,1.5.1,10000,,,,1
+2025-03,Canada,2016A000011124,Barley,Total beginning stocks,Metric tonnes,214,thousands,3,v3002,1.5.2,1200,,,,1
+2025-03,Canada,2016A000011124,Barley,Beginning stocks on farms,Metric tonnes,214,thousands,3,v3003,1.5.3,900,,,,1
+2025-03,Canada,2016A000011124,Barley,Beginning stocks in commercial positions,Metric tonnes,214,thousands,3,v3004,1.5.4,300,,,,1
+2025-03,Canada,2016A000011124,Barley,Production,Metric tonnes,214,thousands,3,v3005,1.5.5,8700,,,,1
+2025-03,Canada,2016A000011124,Barley,Imports,Metric tonnes,214,thousands,3,v3006,1.5.6,100,,,,1
+2025-03,Canada,2016A000011124,Barley,Total disposition,Metric tonnes,214,thousands,3,v3007,1.5.7,10000,,,,1
+2025-03,Canada,2016A000011124,Barley,Total exports,Metric tonnes,214,thousands,3,v3008,1.5.8,3000,,,,1
+2025-03,Canada,2016A000011124,Barley,Grain exports,Metric tonnes,214,thousands,3,v3009,1.5.9,2500,,,,1
+2025-03,Canada,2016A000011124,Barley,Product exports,Metric tonnes,214,thousands,3,v3010,1.5.10,500,,,,1
+2025-03,Canada,2016A000011124,Barley,Total domestic disappearance,Metric tonnes,214,thousands,3,v3011,1.5.11,4500,,,,1
+2025-03,Canada,2016A000011124,Barley,Human food,Metric tonnes,214,thousands,3,v3012,1.5.12,10,,,,1
+2025-03,Canada,2016A000011124,Barley,Seed requirements,Metric tonnes,214,thousands,3,v3013,1.5.13,400,,,,1
+2025-03,Canada,2016A000011124,Barley,Industrial use,Metric tonnes,214,thousands,3,v3014,1.5.14,150,,,,1
+2025-03,Canada,2016A000011124,Barley,Loss in handling,Metric tonnes,214,thousands,3,v3015,1.5.15,5,,,,1
+2025-03,Canada,2016A000011124,Barley,"Animal feed, waste and dockage",Metric tonnes,214,thousands,3,v3016,1.5.16,3935,,,,1
+2025-03,Canada,2016A000011124,Dry peas,Other domestic disappearance,Metric tonnes,214,thousands,3,v3017,1.10.17,700,,,,1
+2025-03,Canada,2016A000011124,Barley,Total ending stocks,Metric tonnes,214,thousands,3,v3018,1.5.18,2500,,,,1
+2025-03,Canada,2016A000011124,Barley,Ending stocks on farms,Metric tonnes,214,thousands,3,v3019,1.5.19,1900,,,,1
+2025-03,Canada,2016A000011124,Barley,Ending stocks in commercial positions,Metric tonnes,214,thousands,3,v3020,1.5.20,600,,,,1
+2025-07,Canada,2016A000011124,Canola,Total ending stocks,Metric tonnes,214,thousands,3,v3021,1.8.18,1500,,r,,1
+2025-12,Canada,2016A000011124,Durum wheat,Production,Metric tonnes,214,thousands,3,v3022,1.2.5,6100,,,,1
+2026-03,Canada,2016A000011124,Dry peas,Total exports,Metric tonnes,214,thousands,3,v3023,1.10.8,,..,,,1
+2026-03,Canada,2016A000011124,Canola,Human food,Metric tonnes,214,thousands,3,v3024,1.8.12,,x,,,1
+2026-03,Canada,2016A000011124,Canola,Imports,Metric tonnes,214,thousands,3,v3025,1.8.6,,,,,1
+2026-03,Canada,2016A000011124,All wheat,Total supplies,Metric tonnes,214,thousands,3,v3998,1.1.1,40000,,,,1
+2026-03,Canada,2016A000011124,"Wheat, excluding durum",Total supplies,Metric tonnes,214,thousands,3,v3999,1.3.1,30000,,,,1
+2026-03,Alberta,2016A000248,Barley,Total supplies,Metric tonnes,214,thousands,3,v4000,2.5.1,5000,,,,1

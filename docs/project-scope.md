@@ -1,10 +1,10 @@
-# AgSure Intelligence v0.3 scope
+# AgSure Intelligence v0.4 scope
 
 ## Decision question
 
-How are acreage, yield, production, and stocks changing across five principal
-Prairie crops, and is Southern Alberta barley supply becoming tighter or more
-abundant than its recent five-year baseline?
+How are official Canada-level supply-and-disposition measures changing for
+barley, canola, durum wheat, and dry peas at comparable reporting snapshots,
+while preserving the existing production, stocks, and synthetic barley views?
 
 ## Included
 
@@ -17,8 +17,12 @@ abundant than its recent five-year baseline?
   growing-degree-day inputs.
 - Point-in-time source and revision metadata.
 - A transparent supply-pressure heuristic.
+- A separate Canada-only Statistics Canada supply-and-disposition view for the
+  exact `Barley`, `Canola`, `Durum wheat`, and `Dry peas` series.
+- Exact source measures and March, July, and December same-period comparisons.
+- Explicit August–July crop-year and cumulative reporting-period semantics.
 
-## Excluded from v0.3
+## Excluded from v0.4
 
 - Cash-bid recommendations.
 - Futures or automated trading.
@@ -31,6 +35,12 @@ abundant than its recent five-year baseline?
 - Total use, stocks-to-use, weather, buyer bids, or price forecasts in the
   official stocks vertical slice.
 - PostgreSQL changes, deployment, town-level analysis, and visual redesign.
+- Stocks-to-use calculations from the supply-and-disposition table.
+- Adding supply-and-disposition observations to, or modifying, the existing
+  synthetic barley supply-pressure score.
+- Combining March, July, and December snapshots or treating repeated crop-year
+  components as additive observations.
+- Relabelling July `Total ending stocks` as carryout.
 
 ## Completion criteria
 
