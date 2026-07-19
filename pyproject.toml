@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agsure-intelligence"
+version = "0.1.0"
+description = "Transparent Prairie crop market-intelligence foundation"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [{ name = "Roman Irodenko" }]
+dependencies = []
+
+[project.optional-dependencies]
+dashboard = ["pandas>=2.2,<3", "plotly>=5.24,<7", "streamlit>=1.40,<2"]
+dev = ["pytest>=8,<9", "ruff>=0.8,<1"]
+
+[project.scripts]
+agsure = "agsure.cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
