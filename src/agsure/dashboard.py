@@ -10,6 +10,7 @@ from agsure.commodities import COMMODITIES
 from agsure.io import load_observations
 from agsure.stocks import compare_same_snapshot
 from agsure.statcan_supply_disposition import MEASURES as SUPPLY_DISPOSITION_MEASURES
+from agsure.stocks_to_use import FORMULA, summarize_history
 
 
 ROOT = Path(__file__).parents[2]
@@ -20,6 +21,9 @@ STATCAN_PRODUCTION_PATH = (
 STATCAN_STOCKS_PATH = ROOT / "data" / "processed" / "statcan_crop_stocks.csv"
 STATCAN_SUPPLY_DISPOSITION_PATH = (
     ROOT / "data" / "processed" / "statcan_supply_disposition.csv"
+)
+STATCAN_STOCKS_TO_USE_PATH = (
+    ROOT / "data" / "processed" / "statcan_stocks_to_use.csv"
 )
 METRIC_LABELS = {
     "seeded-area": "Seeded area",
@@ -491,6 +495,179 @@ def show_statcan_supply_disposition() -> None:
     )
 
 
+def _tonnes(value: str) -> str:
+    return "Not available" if not value else f"{Decimal(value):,.0f} tonnes"
+
+
+def _ratio(value: Decimal | str | None) -> str:
+    if value is None or value == "":
+        return "Not available"
+    return f"{Decimal(value):.1f}%"
+
+
+def _points(value: Decimal | None) -> str | None:
+    return None if value is None else f"{value:+.1f} pp"
+
+
+def show_statcan_stocks_to_use() -> None:
+    st.info(
+        "Official historical stocks-to-use calculation from Statistics Canada "
+        "table 32-10-0013-01. It uses completed August–July crop years only and "
+        "is not a forecast, trading signal, recommendation, or validated predictor."
+    )
+    if not STATCAN_STOCKS_TO_USE_PATH.exists():
+        st.warning(
+            "The derived stocks-to-use file is not available. Run "
+            "`PYTHONPATH=src python -m agsure.stocks_to_use` using the existing "
+            "normalized supply-and-disposition CSV, then reload the dashboard."
+        )
+        return
+
+    frame = pd.read_csv(
+        STATCAN_STOCKS_TO_USE_PATH, dtype=str, keep_default_na=False
+    )
+    commodity_options = [
+        slug for slug in COMMODITIES if slug in set(frame["commodity"])
+    ]
+    selected_slug = st.selectbox(
+        "Commodity",
+        options=commodity_options,
+        format_func=lambda slug: COMMODITIES[slug].display_name,
+    )
+    selected = frame[frame["commodity"] == selected_slug].sort_values(
+        "reference_period"
+    )
+    latest = selected.iloc[-1]
+    selected_records = selected.to_dict("records")
+    summary = None
+    try:
+        candidate = summarize_history(selected_records)
+        if candidate.latest_crop_year == latest["crop_year"]:
+            summary = candidate
+    except ValueError:
+        pass
+
+    calculation_status = latest["calculation_status"]
+    if calculation_status != "calculated":
+        st.error(
+            f"{latest['crop_year']} is unavailable: "
+            f"{latest['calculation_reason'] or 'required source inputs are unavailable'}."
+        )
+    elif latest["reconciliation_status"] == "unreconciled":
+        st.warning(
+            "The latest ratio is calculable but unreconciled: the source balance "
+            "difference exceeds the documented tolerance."
+        )
+
+    first, second, third = st.columns(3)
+    first.metric("Latest completed crop year", latest["crop_year"])
+    second.metric("Ending stocks", _tonnes(latest["ending_stocks_tonnes"]))
+    third.metric("Total use", _tonnes(latest["total_use_tonnes"]))
+    fourth, fifth, sixth = st.columns(3)
+    fourth.metric("Stocks-to-use", _ratio(latest["stocks_to_use_pct"]))
+    fifth.metric(
+        "Previous-year ratio",
+        _ratio(None if summary is None else summary.previous_ratio),
+        delta=(
+            None
+            if summary is None
+            else _points(summary.previous_change_percentage_points)
+        ),
+    )
+    sixth.metric(
+        "Five-year prior average",
+        _ratio(None if summary is None else summary.five_year_average_ratio),
+        delta=(
+            None
+            if summary is None
+            else _points(summary.five_year_deviation_percentage_points)
+        ),
+    )
+    st.metric(
+        "Reconciliation status",
+        latest["reconciliation_status"].replace("_", " ").title(),
+    )
+
+    chart_frame = selected[selected["calculation_status"] == "calculated"].copy()
+    chart_frame["ratio_numeric"] = pd.to_numeric(
+        chart_frame["stocks_to_use_pct"], errors="coerce"
+    )
+    chart_frame = chart_frame.dropna(subset=["ratio_numeric"])
+    st.subheader("Historical July stocks-to-use ratio")
+    if chart_frame.empty:
+        st.warning("No calculated ratios are available to chart.")
+    else:
+        figure = px.line(
+            chart_frame,
+            x="crop_year",
+            y="ratio_numeric",
+            markers=True,
+            labels={
+                "crop_year": "Completed crop year",
+                "ratio_numeric": "Stocks-to-use (%)",
+            },
+        )
+        st.plotly_chart(figure, width="stretch")
+
+    st.markdown(
+        "Lower ratios mean fewer ending stocks relative to measured annual use; "
+        "higher ratios mean more ending stocks relative to measured annual use. "
+        "This relationship does not by itself predict price direction."
+    )
+    exceptions = selected[
+        (selected["calculation_status"] != "calculated")
+        | (selected["reconciliation_status"] == "unreconciled")
+    ][
+        [
+            "crop_year",
+            "calculation_status",
+            "calculation_reason",
+            "reconciliation_status",
+            "reconciliation_difference_tonnes",
+        ]
+    ]
+    if not exceptions.empty:
+        st.subheader("Unavailable or unreconciled years")
+        st.dataframe(exceptions, hide_index=True, width="stretch")
+
+    with st.expander("Latest input provenance and formula details"):
+        st.code(
+            "total_use_tonnes = Total exports + Total domestic disappearance\n"
+            "stocks_to_use_pct = Total ending stocks / total_use_tonnes * 100"
+        )
+        st.caption(
+            f"Stored formula: {FORMULA} · Methodology version: "
+            f"{latest['methodology_version']} · Reconciliation tolerance: "
+            f"±{latest['reconciliation_tolerance_tonnes']} tonnes · Source vintage: "
+            f"{latest['source_vintage_basis']}"
+        )
+        provenance_fields = [
+            "publisher",
+            "source_table",
+            "product_id",
+            "source_url",
+            "table_url",
+            "source_release_date",
+            "source_retrieval_date",
+            "reference_period",
+            "snapshot_period",
+            "crop_year",
+            "geography",
+        ] + [
+            column
+            for column in latest.index
+            if column.startswith(
+                (
+                    "ending_stocks_source_",
+                    "total_exports_source_",
+                    "domestic_disappearance_source_",
+                    "total_disposition_source_",
+                )
+            )
+        ]
+        st.dataframe(latest[provenance_fields].to_frame("value"), width="stretch")
+
+
 st.set_page_config(page_title="AgSure Intelligence", page_icon="🌾", layout="wide")
 st.title("AgSure Intelligence")
 source = st.selectbox(
@@ -500,6 +677,7 @@ source = st.selectbox(
         "statcan-production",
         "statcan-stocks",
         "statcan-supply-disposition",
+        "statcan-stocks-to-use",
     ),
     format_func=lambda value: {
         "synthetic": "Synthetic demonstration data",
@@ -508,6 +686,7 @@ source = st.selectbox(
         "statcan-supply-disposition": (
             "Official Statistics Canada supply and disposition"
         ),
+        "statcan-stocks-to-use": "Official stocks-to-use",
     }[value],
 )
 
@@ -517,8 +696,10 @@ elif source == "statcan-production":
     show_statcan_production()
 elif source == "statcan-stocks":
     show_statcan_stocks()
-else:
+elif source == "statcan-supply-disposition":
     show_statcan_supply_disposition()
+else:
+    show_statcan_stocks_to_use()
 
 with st.expander("Methodology and limitations"):
     st.markdown((ROOT / "docs" / "methodology.md").read_text(encoding="utf-8"))

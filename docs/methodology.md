@@ -66,12 +66,62 @@ release, retrieval time, and source URLs. Historical rows downloaded from the
 current full cube are the latest revised vintage, not observations preserved as
 they appeared on their original release dates.
 
-The view does not calculate stocks-to-use and does not calculate, modify, or
-otherwise consume the synthetic barley supply-pressure score. Its comparisons
+The view does not itself calculate stocks-to-use and does not calculate, modify,
+or otherwise consume the synthetic barley supply-pressure score. Its comparisons
 are not price forecasts and are not recommendations to buy, sell, bid, or
 contract grain. Spring-wheat-specific supply-and-disposition data are
 unavailable from this cube; neither `All wheat` nor `Wheat, excluding durum` is
 used as a proxy.
+
+## Official stocks-to-use
+
+Version 0.5 adds a separate historical calculation from the normalized table
+32-10-0013-01 artifact. It selects only exact `Canada` and `July` rows for
+barley, canola, durum wheat, and dry peas. Under source note 2, July completes
+the August–July crop year. March and December are partial crop-year snapshots
+and are never eligible for this calculation.
+
+For one commodity and crop year, all arithmetic uses `Decimal` and exact
+normalized tonnes:
+
+```text
+total_use_tonnes = Total exports + Total domestic disappearance
+stocks_to_use_pct = Total ending stocks / total_use_tonnes * 100
+```
+
+`Total disposition` is not the denominator. The official cube hierarchy places
+`Total exports`, `Total domestic disappearance`, and `Total ending stocks`
+under `Total disposition`; using total disposition as annual use would therefore
+include ending stocks. The optional balance check is:
+
+```text
+reconciliation_difference_tonnes =
+    total_use_tonnes + Total ending stocks - Total disposition
+```
+
+The source displays each term to one decimal thousand tonnes, equivalent to
+100-tonne increments. Four independently rounded displayed terms participate in
+the balance. The maximum rounding envelope is therefore 200 tonnes, which is
+the inclusive reconciliation tolerance. Differences within ±200 tonnes are
+`reconciled`; larger differences are `unreconciled`. A calculable ratio remains
+visible when unreconciled, and the unmodified difference is recorded.
+
+The numerator and both denominator components must have the same commodity,
+Canada geography, July reference period, crop year, source release and
+retrieval vintage, reporting-period identity, and normalized-tonne unit. A
+required row that is absent, unpublished, confidential, nonnumeric, or otherwise
+unusable makes the ratio unavailable with a reason. Zero or negative total use
+is rejected. Duplicate source keys fail the rebuild. Values are never
+interpolated, repaired, substituted, or drawn from aggregate wheat members.
+
+The dashboard's previous-year ratio requires the immediately preceding valid
+crop year. Its five-year average excludes the current year and requires five
+consecutive valid prior crop years; missing or unavailable years are not skipped.
+Changes and deviations are displayed in percentage points. Lower ratios mean
+fewer ending stocks relative to measured annual use and higher ratios mean more.
+That relationship does not by itself predict price direction. These historical
+calculations are not forecasts, trading signals, recommendations, or validated
+predictors, and they do not modify the synthetic supply-pressure score.
 
 ## Baseline
 
@@ -124,6 +174,10 @@ pressure. It does not directly predict price or basis.
   a point-in-time revision archive.
 - Supply-and-disposition subcomponents differ by crop; absent exact source
   measures are not inferred from totals or residuals.
+- Stocks-to-use results inherit revisions in the latest retrieved cube and do
+  not reproduce the values available at prior points in time.
+- Reconciliation checks are limited by the source's displayed precision; a
+  reconciled result is an arithmetic consistency check, not model validation.
 - The current cube reports literal zero values for dry-pea production and
   beginning-stock components at the December 1998 and March 1999 snapshots,
   followed by nonzero July 1999 values for the same 1998/1999 crop year. AgSure

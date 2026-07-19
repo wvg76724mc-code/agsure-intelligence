@@ -184,3 +184,26 @@ snapshots or silently repaired.
 
 The committed offline fixture contains synthetic source-shaped test rows only;
 it is not a substitute for, or redistribution of, the official full table.
+
+### Derived official stocks-to-use history
+
+Status: **implemented in v0.5**
+
+This derived artifact uses the existing normalized product `32100013` CSV and
+does not trigger another download. It selects exact `Canada` July rows for
+barley, canola, durum wheat, and dry peas. The exact numerator is `Total ending
+stocks`; the denominator is `Total exports + Total domestic disappearance`.
+`Total disposition` is retained only for reconciliation because the cube
+structure shows that it also contains ending stocks.
+
+The official table page and bundled metadata note 2 were verified before
+implementation. Note 2 defines July as August through July for these crops, so
+only July represents a completed crop year. The cube dimension metadata places
+`Total exports`, `Total domestic disappearance`, and `Total ending stocks` as
+members beneath `Total disposition`. Historical results reflect the latest
+revised cube vintage at retrieval, not point-in-time vintage reconstruction.
+
+The derived CSV retains the release date, retrieval date, vectors, coordinates,
+source values, units, scalars, observation statuses, source markers, and
+revision markers for each required input and for the optional reconciliation
+row. Unavailable inputs remain unavailable. No aggregate wheat member is used.
