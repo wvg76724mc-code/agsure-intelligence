@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agsure-intelligence"
-version = "0.5.0"
+version = "0.6.0"
 description = "Transparent Prairie crop market-intelligence foundation"
 readme = "README.md"
 requires-python = ">=3.12"

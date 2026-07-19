@@ -1,0 +1,6 @@
+publisher,source_table,source_url,release_date,retrieved_at,reference_period,snapshot_period,crop_year,commodity,source_crop,geography,measure,normalized_tonnes,normalized_unit
+Statistics Canada,32-10-0013-01,https://example.test/supply,2026-05-01,2026-05-02T00:00:00Z,2024-07,July,2023/2024,barley,Barley,Canada,Total ending stocks,100,tonnes
+Statistics Canada,32-10-0013-01,https://example.test/supply,2026-05-01,2026-05-02T00:00:00Z,2025-07,July,2024/2025,barley,Barley,Canada,Total ending stocks,110,tonnes
+Statistics Canada,32-10-0013-01,https://example.test/supply,2026-05-01,2026-05-02T00:00:00Z,2025-07,July,2024/2025,canola,Canola,Canada,Total ending stocks,210,tonnes
+Statistics Canada,32-10-0013-01,https://example.test/supply,2026-05-01,2026-05-02T00:00:00Z,2025-07,July,2024/2025,durum-wheat,Durum wheat,Canada,Total ending stocks,310,tonnes
+Statistics Canada,32-10-0013-01,https://example.test/supply,2026-05-01,2026-05-02T00:00:00Z,2025-07,July,2024/2025,dry-peas,Dry peas,Canada,Total ending stocks,410,tonnes

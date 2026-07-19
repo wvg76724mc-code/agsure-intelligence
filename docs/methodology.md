@@ -1,5 +1,51 @@
 # Methodology
 
+## Unified commodity overview
+
+Version 0.6 makes a unified official overview the dashboard default without
+changing the v0.2–v0.5 ingestion or calculation methods. A standard-library,
+Streamlit-free view-model loads the existing normalized production, stocks,
+supply-and-disposition, and derived stocks-to-use CSVs. It validates required
+columns, exact source table and crop identities, units, geography, reporting
+periods, completed crop-year relationships, and duplicate keys before selecting
+anything.
+
+Latest selection is deterministic within an exact identity. Production uses one
+commodity, geography, and metric. Stocks use one commodity, geography, unchanged
+stock-type label, and snapshot. Supply and disposition use one commodity,
+unchanged measure label, Canada geography, and snapshot. The greatest reference
+period is selected from that identity. If its value is unpublished, the latest
+value is reported unavailable; no earlier observation is substituted. History
+comparisons reuse `compare_same_snapshot`, require one snapshot period, and do
+not average missing consecutive baselines.
+
+The initial stocks identity is `Farm and commercial, total` for Canada and
+`Farm stocks` for a province, then the snapshot having the newest reference
+date; users may select another source-published type or snapshot. The initial
+supply-and-disposition identity is exact `Total ending stocks` at the July
+snapshot, with exact measure and snapshot controls available. Production picks
+the latest row separately for each metric, so seeded area can legitimately have
+a newer annual reference period than harvested area, yield, or production. The
+snapshot never performs arithmetic across those independently labelled periods.
+The ratio section takes the greatest row in the existing July-only derived
+artifact and reports it unavailable if that row is not calculable.
+
+The province control applies only to production and stocks. Supply and
+disposition and stocks-to-use always remain labelled Canada, even while a
+province is selected above them. Stocks-to-use reuses the v0.5 artifact without
+recalculation: exact July rows, completed August–July crop years, `Decimal`
+inputs, and existing reconciliation guardrails remain authoritative. Spring
+wheat uses only the exact `Wheat, spring` production member. `All wheat`,
+`Wheat, excluding durum`, and similarly broad members are rejected, not treated
+as proxies.
+
+Official published observations, inputs to a derived official calculation, and
+derived official calculations are visibly classified. Synthetic demonstrations
+remain in their separate detailed view. No official value enters the unchanged
+synthetic barley supply-pressure model, and no official supply-pressure score is
+calculated. Unavailable artifacts, absent exact series, and unusable latest rows
+produce an explicit `Not available from the selected official source` reason.
+
 ## Purpose
 
 The initial barley supply-pressure score is a transparent engineering heuristic. It

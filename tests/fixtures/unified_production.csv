@@ -1,0 +1,11 @@
+publisher,source_table,source_url,release_date,retrieved_at,reference_period,commodity,source_crop,geography,metric,value,unit
+Statistics Canada,32-10-0359-01,https://example.test/production,2026-01-01,2026-01-02T00:00:00Z,2024,barley,Barley,Canada,production,1000,tonnes
+Statistics Canada,32-10-0359-01,https://example.test/production,2026-01-01,2026-01-02T00:00:00Z,2025,barley,Barley,Canada,production,1100,tonnes
+Statistics Canada,32-10-0359-01,https://example.test/production,2026-01-01,2026-01-02T00:00:00Z,2025,barley,Barley,Canada,seeded-area,500,hectares
+Statistics Canada,32-10-0359-01,https://example.test/production,2026-01-01,2026-01-02T00:00:00Z,2025,barley,Barley,Canada,harvested-area,480,hectares
+Statistics Canada,32-10-0359-01,https://example.test/production,2026-01-01,2026-01-02T00:00:00Z,2025,barley,Barley,Canada,yield,2.3,tonnes per hectare
+Statistics Canada,32-10-0359-01,https://example.test/production,2026-01-01,2026-01-02T00:00:00Z,2025,barley,Barley,Alberta,production,400,tonnes
+Statistics Canada,32-10-0359-01,https://example.test/production,2026-01-01,2026-01-02T00:00:00Z,2025,canola,Canola (rapeseed),Canada,production,2100,tonnes
+Statistics Canada,32-10-0359-01,https://example.test/production,2026-01-01,2026-01-02T00:00:00Z,2025,durum-wheat,"Wheat, durum",Canada,production,900,tonnes
+Statistics Canada,32-10-0359-01,https://example.test/production,2026-01-01,2026-01-02T00:00:00Z,2025,dry-peas,"Peas, dry",Canada,production,700,tonnes
+Statistics Canada,32-10-0359-01,https://example.test/production,2026-01-01,2026-01-02T00:00:00Z,2025,spring-wheat,"Wheat, spring",Canada,production,3000,tonnes
