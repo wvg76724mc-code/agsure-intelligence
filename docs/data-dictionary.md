@@ -143,3 +143,39 @@ changing `reference_period`. March and July belong to the crop year that began
 in the prior calendar year; December belongs to the crop year beginning in the
 same calendar year. No day of month is invented because this table publishes
 month-level reference periods.
+
+## Official stocks-to-use calculations
+
+`data/processed/statcan_stocks_to_use.csv` is a local derived artifact with one
+row per selected commodity and completed crop year. It is rebuilt from the
+normalized supply-and-disposition CSV and is never used by the synthetic score.
+
+| Field | Meaning |
+|---|---|
+| `publisher`, `source_table`, `product_id`, `source_url`, `table_url` | Official source identity inherited from the matched rows |
+| `source_release_date`, `source_retrieval_date` | Latest cube release and retrieval vintage used by the calculation |
+| `source_vintage_basis` | Explicit latest-revised-cube interpretation |
+| `reference_period`, `snapshot_period`, `crop_year` | Exact July reference period and completed August–July crop year |
+| `reporting_period_start`, `reporting_period_end`, `reporting_period_basis` | Source-derived cumulative crop-year period identity |
+| `commodity`, `source_crop`, `geography`, `dguid`, `source_note_ids` | Exact series identity and source-note references |
+| `ending_stocks_tonnes` | Normalized `Total ending stocks` numerator |
+| `total_exports_tonnes` | First normalized denominator component |
+| `total_domestic_disappearance_tonnes` | Second normalized denominator component |
+| `total_use_tonnes` | `Total exports + Total domestic disappearance` |
+| `stocks_to_use_pct` | `Total ending stocks / total_use_tonnes * 100` |
+| `total_disposition_tonnes` | Optional exact source value used only for reconciliation |
+| `reconciliation_sum_tonnes` | `total_use_tonnes + ending_stocks_tonnes` |
+| `reconciliation_difference_tonnes` | Reconciliation sum minus `Total disposition`; never used to alter a source value |
+| `reconciliation_tolerance_tonnes` | Inclusive 200-tonne source-precision tolerance |
+| `reconciliation_status` | `reconciled`, `unreconciled`, or `not_available` |
+| `calculation_status` | `calculated` or `unavailable` |
+| `calculation_reason` | Explicit reason when calculation is unavailable |
+| `formula`, `methodology_version` | Reproducible method identity (`0.5.0`) |
+
+Each of the prefixes `ending_stocks_source_`, `total_exports_source_`,
+`domestic_disappearance_source_`, and `total_disposition_source_` is followed by
+the same provenance fields: `measure`, `original_value`, `original_unit`,
+`uom_id`, `scalar_factor`, `scalar_id`, `normalized_tonnes`, `normalized_unit`,
+`observation_status`, `status_marker`, `revision_marker`, `symbol`, `terminated`,
+`decimals`, `vector`, and `coordinate`. These fields preserve the exact input
+rows separately from calculated values.

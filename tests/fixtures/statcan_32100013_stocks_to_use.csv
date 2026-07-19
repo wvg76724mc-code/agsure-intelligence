@@ -1,0 +1,9 @@
+REF_DATE,GEO,DGUID,Type of crop,Supply and disposition of grains,UOM,UOM_ID,SCALAR_FACTOR,SCALAR_ID,VECTOR,COORDINATE,VALUE,STATUS,SYMBOL,TERMINATED,DECIMALS
+2025-07,Canada,2016A000011124,Barley,Total disposition,Metric tonnes,214,thousands,3,v5101,1.5.7,8999.9,,,,1
+2025-07,Canada,2016A000011124,Barley,Total exports,Metric tonnes,214,thousands,3,v5102,1.5.8,3000.0,,,,1
+2025-07,Canada,2016A000011124,Barley,Total domestic disappearance,Metric tonnes,214,thousands,3,v5103,1.5.11,4500.0,,,,1
+2025-07,Canada,2016A000011124,Barley,Total ending stocks,Metric tonnes,214,thousands,3,v5104,1.5.18,1500.0,,r,,1
+2025-07,Canada,2016A000011124,Dry peas,Total disposition,Metric tonnes,214,thousands,3,v5201,1.10.7,3000.0,,,,1
+2025-07,Canada,2016A000011124,Dry peas,Total exports,Metric tonnes,214,thousands,3,v5202,1.10.8,,..,,,1
+2025-07,Canada,2016A000011124,Dry peas,Total domestic disappearance,Metric tonnes,214,thousands,3,v5203,1.10.11,900.0,,,,1
+2025-07,Canada,2016A000011124,Dry peas,Total ending stocks,Metric tonnes,214,thousands,3,v5204,1.10.18,100.0,,,,1

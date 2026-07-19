@@ -1,7 +1,7 @@
 # AgSure Intelligence
 
 AgSure Intelligence is a transparent, source-traceable agricultural market
-intelligence project. Version 0.4 tracks five Prairie crops:
+intelligence project. Version 0.5 tracks five Prairie crops:
 
 - Barley
 - Canola
@@ -16,14 +16,17 @@ Barley is the first fully implemented analytical vertical. It asks:
 
 The dashboard can show synthetic demonstration history, official Statistics
 Canada production data, crop stocks, or a narrow Canada-level
-supply-and-disposition monitoring slice. Official observations are displayed
-for monitoring only; they are not price forecasts or trading recommendations.
+supply-and-disposition monitoring slice, or completed-crop-year official
+stocks-to-use ratios. Official observations and calculations are displayed for
+monitoring only; they are not forecasts, trading signals, recommendations, or
+validated predictors.
 
 ## What works now
 
 - Loads a normalized multi-commodity annual dataset.
 - Calculates five-year baselines and current deviations.
-- Calculates stocks-to-use.
+- Calculates stocks-to-use in the synthetic demonstration model without
+  changing that model's established result.
 - Produces a transparent 0-100 barley supply-pressure indicator.
 - Reports every component and weight used in the indicator.
 - Includes a PostgreSQL/PostGIS schema for source and revision tracking.
@@ -49,6 +52,12 @@ for monitoring only; they are not price forecasts or trading recommendations.
 - Compares only the same measure and March, July, or December reporting snapshot
   across crop years. It never adds snapshots or feeds these observations into
   the existing supply-pressure score.
+- Rebuilds a separate official historical stocks-to-use CSV from exact Canada,
+  July, crop-year, and normalized-tonne matches for `Total ending stocks`,
+  `Total exports`, and `Total domestic disappearance`.
+- Preserves all three source rows and optionally reconciles their sum against
+  `Total disposition`; a documented source-rounding difference never silently
+  changes a published value.
 
 ## Quick start
 
@@ -75,6 +84,7 @@ CSV (the raw and processed data directories are intentionally ignored by Git):
 PYTHONPATH=src python -m agsure.statcan
 PYTHONPATH=src python -m agsure.statcan_stocks
 PYTHONPATH=src python -m agsure.statcan_supply_disposition
+PYTHONPATH=src python -m agsure.stocks_to_use
 ```
 
 The command reuses a cached ZIP after verifying its SHA-256 digest. Pass
@@ -83,7 +93,10 @@ is written to `data/processed/statcan_crop_production.csv` by default. Download
 and parsing use the Python standard library. The stocks command writes
 `data/processed/statcan_crop_stocks.csv` and uses the same verified cache and
 provenance pattern. The supply-and-disposition command writes
-`data/processed/statcan_supply_disposition.csv`.
+`data/processed/statcan_supply_disposition.csv`. The stocks-to-use command uses
+that existing normalized file without downloading anything and writes
+`data/processed/statcan_stocks_to_use.csv`. Both generated CSVs remain local and
+Git-ignored.
 
 For PostgreSQL/PostGIS:
 
@@ -111,10 +124,13 @@ This barley model is initially a documented heuristic, not a validated price for
 Statistics Canada tables 32-10-0359-01, 32-10-0007-01, and 32-10-0013-01 are
 implemented official-source connectors. Table 32-10-0013-01 says the selected
 crops use an August–July crop year and its March, July, and December periods are
-cumulative over that crop year. The current cube has no spring-wheat-specific
-supply-and-disposition member; AgSure does not map `All wheat` or `Wheat,
-excluding durum` to spring wheat. Stocks-to-use, weather, bids, and price
-forecasts remain out of scope for the v0.4 official vertical slice.
+cumulative over that crop year. Version 0.5 uses July only to calculate:
+`Total ending stocks / (Total exports + Total domestic disappearance) * 100`.
+`Total disposition` is not the denominator because it includes ending stocks.
+The current cube has no spring-wheat-specific supply-and-disposition member;
+AgSure does not map `All wheat` or `Wheat, excluding durum` to spring wheat.
+Weather, bids, prices, price forecasts, and a real-data supply-pressure score
+remain out of scope.
 
 The initial approved Statistics Canada tables and ingestion requirements are
 listed in [`docs/data-sources.md`](docs/data-sources.md).

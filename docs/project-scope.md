@@ -1,10 +1,10 @@
-# AgSure Intelligence v0.4 scope
+# AgSure Intelligence v0.5 scope
 
 ## Decision question
 
-How are official Canada-level supply-and-disposition measures changing for
-barley, canola, durum wheat, and dry peas at comparable reporting snapshots,
-while preserving the existing production, stocks, and synthetic barley views?
+What were the transparent historical stocks-to-use ratios for barley, canola,
+durum wheat, and dry peas in completed Canada-level August–July crop years,
+while preserving all earlier official and synthetic views?
 
 ## Included
 
@@ -21,8 +21,12 @@ while preserving the existing production, stocks, and synthetic barley views?
   exact `Barley`, `Canola`, `Durum wheat`, and `Dry peas` series.
 - Exact source measures and March, July, and December same-period comparisons.
 - Explicit August–July crop-year and cumulative reporting-period semantics.
+- A separate July-only official stocks-to-use calculation using exact ending
+  stocks, exports, and domestic disappearance measures in normalized tonnes.
+- Input-level provenance, explicit unavailability, balance reconciliation, and
+  strict consecutive-year dashboard comparisons.
 
-## Excluded from v0.4
+## Excluded from v0.5
 
 - Cash-bid recommendations.
 - Futures or automated trading.
@@ -35,12 +39,15 @@ while preserving the existing production, stocks, and synthetic barley views?
 - Total use, stocks-to-use, weather, buyer bids, or price forecasts in the
   official stocks vertical slice.
 - PostgreSQL changes, deployment, town-level analysis, and visual redesign.
-- Stocks-to-use calculations from the supply-and-disposition table.
 - Adding supply-and-disposition observations to, or modifying, the existing
   synthetic barley supply-pressure score.
 - Combining March, July, and December snapshots or treating repeated crop-year
   components as additive observations.
 - Relabelling July `Total ending stocks` as carryout.
+- Using `Total disposition` as total use or silently forcing a source balance.
+- A real-data supply-pressure score, weather, cash bids, prices, price
+  forecasting, provincial or town-level ratios, PostgreSQL changes, deployment,
+  visual redesign, or AI-generated narrative.
 
 ## Completion criteria
 
