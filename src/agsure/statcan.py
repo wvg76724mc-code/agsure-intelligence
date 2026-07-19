@@ -142,7 +142,7 @@ def _parse_release_date(page: str) -> str:
 
 def _request(url: str):
     request = urllib.request.Request(
-        url, headers={"User-Agent": "AgSure-Intelligence/0.3 (+source ingestion)"}
+        url, headers={"User-Agent": "AgSure-Intelligence/0.4 (+source ingestion)"}
     )
     return urllib.request.urlopen(request, timeout=120)
 

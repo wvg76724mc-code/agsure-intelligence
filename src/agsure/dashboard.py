@@ -9,6 +9,7 @@ from agsure.analysis import calculate_supply_pressure
 from agsure.commodities import COMMODITIES
 from agsure.io import load_observations
 from agsure.stocks import compare_same_snapshot
+from agsure.statcan_supply_disposition import MEASURES as SUPPLY_DISPOSITION_MEASURES
 
 
 ROOT = Path(__file__).parents[2]
@@ -17,6 +18,9 @@ STATCAN_PRODUCTION_PATH = (
     ROOT / "data" / "processed" / "statcan_crop_production.csv"
 )
 STATCAN_STOCKS_PATH = ROOT / "data" / "processed" / "statcan_crop_stocks.csv"
+STATCAN_SUPPLY_DISPOSITION_PATH = (
+    ROOT / "data" / "processed" / "statcan_supply_disposition.csv"
+)
 METRIC_LABELS = {
     "seeded-area": "Seeded area",
     "harvested-area": "Harvested area",
@@ -330,15 +334,180 @@ def show_statcan_stocks() -> None:
     )
 
 
+def show_statcan_supply_disposition() -> None:
+    st.info(
+        "Official Statistics Canada supply-and-disposition observations. "
+        "Comparisons are descriptive, not price forecasts or recommendations "
+        "to buy, sell, bid, or contract grain."
+    )
+    if not STATCAN_SUPPLY_DISPOSITION_PATH.exists():
+        st.warning(
+            "The processed supply-and-disposition cache is not available. Run "
+            "`PYTHONPATH=src python -m agsure.statcan_supply_disposition` and "
+            "reload the dashboard."
+        )
+        return
+
+    frame = pd.read_csv(
+        STATCAN_SUPPLY_DISPOSITION_PATH, dtype=str, keep_default_na=False
+    )
+    commodity_options = list(dict.fromkeys(frame["commodity"]))
+    selected_slug = st.selectbox(
+        "Commodity",
+        options=commodity_options,
+        format_func=lambda slug: COMMODITIES[slug].display_name,
+    )
+    available_measures = set(
+        frame.loc[frame["commodity"] == selected_slug, "measure"]
+    )
+    measure_options = [
+        measure
+        for measure in SUPPLY_DISPOSITION_MEASURES
+        if measure in available_measures
+    ]
+    measure = st.selectbox("Measure", options=measure_options)
+    snapshot_options = [
+        item
+        for item in ("March", "July", "December")
+        if item in set(frame["snapshot_period"])
+    ]
+    snapshot_period = st.selectbox(
+        "Snapshot period", options=snapshot_options
+    )
+
+    selected = frame[
+        (frame["commodity"] == selected_slug)
+        & (frame["measure"] == measure)
+        & (frame["snapshot_period"] == snapshot_period)
+    ].copy()
+    if selected.empty:
+        st.warning("No source rows match the selected series.")
+        return
+
+    observations = {
+        row["reference_period"]: (
+            Decimal(row["normalized_tonnes"])
+            if row["normalized_tonnes"]
+            else None
+        )
+        for _, row in selected.iterrows()
+    }
+    try:
+        comparison = compare_same_snapshot(observations)
+    except ValueError as exc:
+        st.warning(str(exc))
+        return
+
+    latest = selected[
+        selected["reference_period"] == comparison.reference_period
+    ].iloc[0]
+    first, second, third, fourth = st.columns(4)
+    first.metric("Latest published value", f"{comparison.latest_tonnes:,.0f} tonnes")
+    second.metric("Year-over-year change", _format_pct(comparison.year_over_year_pct))
+    third.metric(
+        "Same-period five-year average",
+        "Not available"
+        if comparison.five_year_average_tonnes is None
+        else f"{comparison.five_year_average_tonnes:,.0f} tonnes",
+    )
+    fourth.metric(
+        "Deviation from five-year average",
+        _format_pct(comparison.five_year_deviation_pct),
+    )
+
+    chart_frame = selected.copy()
+    chart_frame["value_numeric"] = pd.to_numeric(
+        chart_frame["normalized_tonnes"], errors="coerce"
+    )
+    chart_frame = chart_frame.dropna(subset=["value_numeric"]).sort_values(
+        "reference_period"
+    )
+    st.subheader(f"{measure} at the {snapshot_period} snapshot across years")
+    figure = px.line(
+        chart_frame,
+        x="reference_period",
+        y="value_numeric",
+        markers=True,
+        labels={
+            "reference_period": "Reference period",
+            "value_numeric": f"{measure} (tonnes)",
+        },
+    )
+    st.plotly_chart(figure, width="stretch")
+    st.caption(
+        f"Publisher: {latest['publisher']} · Table: {latest['source_table']} · "
+        f"Geography: {latest['geography']} · Unit: {latest['normalized_unit']} · "
+        f"Reference period: {latest['reference_period']} · "
+        f"Crop year: {latest['crop_year']} · Release: {latest['release_date']} · "
+        f"Retrieved: {latest['retrieved_at']}"
+    )
+    st.warning(
+        "For these crops, Statistics Canada defines March, July, and December "
+        "periods as cumulative over the August–July crop year. Exports and "
+        "domestic disappearance are crop-year-to-date flows at the selected "
+        "snapshot. Do not add snapshots together. Repeated production or "
+        "beginning-stock values are not new observations to sum. No "
+        "stocks-to-use ratio or supply-pressure score is calculated here."
+    )
+    with st.expander("Latest observation provenance"):
+        st.dataframe(
+            latest[
+                [
+                    "reference_period",
+                    "snapshot_period",
+                    "crop_year",
+                    "reporting_period_start",
+                    "reporting_period_end",
+                    "reporting_period_basis",
+                    "source_crop",
+                    "source_note_ids",
+                    "measure",
+                    "original_value",
+                    "original_unit",
+                    "uom_id",
+                    "scalar_factor",
+                    "scalar_id",
+                    "normalized_tonnes",
+                    "normalized_unit",
+                    "observation_status",
+                    "status_marker",
+                    "revision_marker",
+                    "symbol",
+                    "vector",
+                    "coordinate",
+                    "dguid",
+                    "terminated",
+                    "source_url",
+                    "table_url",
+                ]
+            ].to_frame("value"),
+            width="stretch",
+        )
+    st.caption(
+        "The current cube has no spring-wheat-specific supply-and-disposition "
+        "member. AgSure does not map All wheat or Wheat, excluding durum to "
+        "spring wheat. Historical rows are the latest revised vintage in the "
+        "current cube, not a point-in-time archive."
+    )
+
+
 st.set_page_config(page_title="AgSure Intelligence", page_icon="🌾", layout="wide")
 st.title("AgSure Intelligence")
 source = st.selectbox(
     "Data source",
-    options=("synthetic", "statcan-production", "statcan-stocks"),
+    options=(
+        "synthetic",
+        "statcan-production",
+        "statcan-stocks",
+        "statcan-supply-disposition",
+    ),
     format_func=lambda value: {
         "synthetic": "Synthetic demonstration data",
         "statcan-production": "Official Statistics Canada crop production",
         "statcan-stocks": "Official Statistics Canada crop stocks",
+        "statcan-supply-disposition": (
+            "Official Statistics Canada supply and disposition"
+        ),
     }[value],
 )
 
@@ -346,8 +515,10 @@ if source == "synthetic":
     show_synthetic()
 elif source == "statcan-production":
     show_statcan_production()
-else:
+elif source == "statcan-stocks":
     show_statcan_stocks()
+else:
+    show_statcan_supply_disposition()
 
 with st.expander("Methodology and limitations"):
     st.markdown((ROOT / "docs" / "methodology.md").read_text(encoding="utf-8"))

@@ -40,6 +40,39 @@ They do not calculate total use, stocks-to-use, or the supply-pressure score.
 Spring-wheat-specific stocks are unavailable from this table, and “wheat
 excluding durum” is not used as a proxy.
 
+## Official supply-and-disposition monitoring
+
+Version 0.4 adds a distinct descriptive view of table 32-10-0013-01 for Canada.
+It keeps the source's exact crop and measure labels and filters to one commodity,
+one measure, and one March, July, or December snapshot before calculating or
+charting anything. Year-over-year change, the five-year average, and deviation
+use the same strict consecutive same-period rules as the v0.3 stocks view. A
+missing required observation makes the affected comparison unavailable; it is
+never interpolated or replaced with an older value.
+
+Statistics Canada source note 2 says the selected grains use an August–July
+crop year. March means August through March, July means August through July,
+and December means August through December. Flow measures such as exports and
+domestic disappearance are therefore cumulative crop-year-to-date at each
+snapshot. March, July, and December values must not be added together.
+Production and beginning stocks can repeat across snapshots because they are
+components of the same crop-year account; repeated values are not counted as
+new production or stocks. AgSure retains the exact `Total ending stocks` label
+and does not relabel July ending stocks as “carryout.”
+
+The dashboard displays normalized tonnes while exposing the original value,
+unit, scalar, status fields, vector, coordinate, DGUID, crop-year relationship,
+release, retrieval time, and source URLs. Historical rows downloaded from the
+current full cube are the latest revised vintage, not observations preserved as
+they appeared on their original release dates.
+
+The view does not calculate stocks-to-use and does not calculate, modify, or
+otherwise consume the synthetic barley supply-pressure score. Its comparisons
+are not price forecasts and are not recommendations to buy, sell, bid, or
+contract grain. Spring-wheat-specific supply-and-disposition data are
+unavailable from this cube; neither `All wheat` nor `Wheat, excluding durum` is
+used as a proxy.
+
 ## Baseline
 
 The latest crop year is compared with the five immediately preceding crop
@@ -87,6 +120,14 @@ pressure. It does not directly predict price or basis.
 - From March 2023, Statistics Canada notes that farm stocks for several
   provinces and crops use modelled inputs; row-level statuses and source notes
   should be consulted when interpreting the series.
+- Supply-and-disposition history is a latest-revised current-cube vintage, not
+  a point-in-time revision archive.
+- Supply-and-disposition subcomponents differ by crop; absent exact source
+  measures are not inferred from totals or residuals.
+- The current cube reports literal zero values for dry-pea production and
+  beginning-stock components at the December 1998 and March 1999 snapshots,
+  followed by nonzero July 1999 values for the same 1998/1999 crop year. AgSure
+  preserves these source observations and does not repair or reinterpret them.
 
 Before commercial use, weights must be backtested against out-of-sample
 production and basis outcomes with documented error metrics.

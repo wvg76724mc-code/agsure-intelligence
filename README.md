@@ -1,7 +1,7 @@
 # AgSure Intelligence
 
 AgSure Intelligence is a transparent, source-traceable agricultural market
-intelligence project. Version 0.3 tracks five Prairie crops:
+intelligence project. Version 0.4 tracks five Prairie crops:
 
 - Barley
 - Canola
@@ -15,9 +15,9 @@ Barley is the first fully implemented analytical vertical. It asks:
 > abundant than its recent historical baseline?
 
 The dashboard can show synthetic demonstration history, official Statistics
-Canada production data, or a narrow crop-stocks monitoring slice. Official
-observations are displayed for monitoring only; they are not price forecasts
-or trading recommendations.
+Canada production data, crop stocks, or a narrow Canada-level
+supply-and-disposition monitoring slice. Official observations are displayed
+for monitoring only; they are not price forecasts or trading recommendations.
 
 ## What works now
 
@@ -40,6 +40,15 @@ or trading recommendations.
 - Preserves total, farm, and commercial stock labels where the source publishes
   them. Provincial rows in this table provide farm stocks; Canada provides all
   three types.
+- Downloads and normalizes Statistics Canada table 32-10-0013-01 for the exact
+  `Barley`, `Canola`, `Durum wheat`, and `Dry peas` members at Canada level.
+- Preserves every exact supply-and-disposition measure published for those
+  members, with raw values, units, scalars, source status fields, vector,
+  coordinate, DGUID, release date, and retrieval time kept separately from
+  normalized tonnes.
+- Compares only the same measure and March, July, or December reporting snapshot
+  across crop years. It never adds snapshots or feeds these observations into
+  the existing supply-pressure score.
 
 ## Quick start
 
@@ -65,6 +74,7 @@ CSV (the raw and processed data directories are intentionally ignored by Git):
 ```bash
 PYTHONPATH=src python -m agsure.statcan
 PYTHONPATH=src python -m agsure.statcan_stocks
+PYTHONPATH=src python -m agsure.statcan_supply_disposition
 ```
 
 The command reuses a cached ZIP after verifying its SHA-256 digest. Pass
@@ -72,7 +82,8 @@ The command reuses a cached ZIP after verifying its SHA-256 digest. Pass
 is written to `data/processed/statcan_crop_production.csv` by default. Download
 and parsing use the Python standard library. The stocks command writes
 `data/processed/statcan_crop_stocks.csv` and uses the same verified cache and
-provenance pattern.
+provenance pattern. The supply-and-disposition command writes
+`data/processed/statcan_supply_disposition.csv`.
 
 For PostgreSQL/PostGIS:
 
@@ -97,11 +108,13 @@ This barley model is initially a documented heuristic, not a validated price for
 
 ## Data sources
 
-Statistics Canada tables 32-10-0359-01 and 32-10-0007-01 are implemented
-official-source connectors. Table 32-10-0007-01 does not publish
-spring-wheat-specific stocks; AgSure does not map “wheat excluding durum” to
-spring wheat. Total use, stocks-to-use, weather, bids, and price forecasts
-remain out of scope for v0.3.
+Statistics Canada tables 32-10-0359-01, 32-10-0007-01, and 32-10-0013-01 are
+implemented official-source connectors. Table 32-10-0013-01 says the selected
+crops use an August–July crop year and its March, July, and December periods are
+cumulative over that crop year. The current cube has no spring-wheat-specific
+supply-and-disposition member; AgSure does not map `All wheat` or `Wheat,
+excluding durum` to spring wheat. Stocks-to-use, weather, bids, and price
+forecasts remain out of scope for the v0.4 official vertical slice.
 
 The initial approved Statistics Canada tables and ingestion requirements are
 listed in [`docs/data-sources.md`](docs/data-sources.md).

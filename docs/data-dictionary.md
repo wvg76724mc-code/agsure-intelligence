@@ -95,3 +95,51 @@ is never adapted into the synthetic score input.
 
 Spring wheat is intentionally absent: the table's “Wheat, all excluding durum
 wheat” series is not equivalent to spring wheat.
+
+## Statistics Canada supply-and-disposition observations
+
+`data/processed/statcan_supply_disposition.csv` is a separate long-form local
+artifact and is never adapted into the synthetic score input.
+
+| Field | Meaning |
+|---|---|
+| `publisher` | Official publisher (`Statistics Canada`) |
+| `source_table` | Statistics Canada table number (`32-10-0013-01`) |
+| `product_id` | Statistics Canada product ID (`32100013`) |
+| `source_url` | Validated official full-table CSV ZIP URL |
+| `table_url` | Official human-readable table page |
+| `release_date` | Release date shown on the table page at retrieval |
+| `retrieved_at` | UTC retrieval timestamp in ISO 8601 format |
+| `reference_period` | Unchanged source `REF_DATE` (`YYYY-03`, `YYYY-07`, or `YYYY-12`) |
+| `snapshot_period` | Derived selector label: `March`, `July`, or `December` |
+| `crop_year` | Explicit August–July relationship (`YYYY/YYYY`) derived from the source note |
+| `reporting_period_start` | August crop-year start at month precision (`YYYY-08`) |
+| `reporting_period_end` | Selected source reference period at month precision |
+| `reporting_period_basis` | `Cumulative over the crop year`, following source note 2 |
+| `commodity` | AgSure slug: `barley`, `canola`, `durum-wheat`, or `dry-peas` |
+| `source_crop` | Unchanged source crop label |
+| `geography` | Unchanged source geography label (`Canada`) |
+| `dguid` | Statistics Canada dissemination geography identifier |
+| `source_note_ids` | Relevant table and crop-member note IDs in the cached metadata CSV |
+| `measure` | Unchanged `Supply and disposition of grains` member label |
+| `original_value` | Unchanged source `VALUE`; unpublished text or blank stays traceable |
+| `original_unit` | Unchanged source `UOM` (`Metric tonnes`) |
+| `uom_id` | Unchanged source `UOM_ID` |
+| `scalar_factor` | Unchanged source `SCALAR_FACTOR` (`thousands`) |
+| `scalar_id` | Unchanged source `SCALAR_ID` |
+| `normalized_tonnes` | Scalar-adjusted tonnes; blank for unpublished observations |
+| `normalized_unit` | Internal metric unit (`tonnes`) |
+| `observation_status` | `official` for published values; otherwise the explicit missing/publication condition |
+| `status_marker` | Unchanged source `STATUS` |
+| `revision_marker` | `r` only when an unchanged source status or symbol carries `r` |
+| `symbol` | Unchanged source `SYMBOL` |
+| `terminated` | Unchanged source `TERMINATED` marker |
+| `decimals` | Source display precision |
+| `vector` | Statistics Canada vector identifier |
+| `coordinate` | Statistics Canada cube coordinate |
+
+The derived crop-year fields make the source relationship explicit without
+changing `reference_period`. March and July belong to the crop year that began
+in the prior calendar year; December belongs to the crop year beginning in the
+same calendar year. No day of month is invented because this table publishes
+month-level reference periods.
