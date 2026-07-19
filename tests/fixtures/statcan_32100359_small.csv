@@ -1,0 +1,10 @@
+REF_DATE,GEO,DGUID,Harvest disposition,Type of crop,UOM,UOM_ID,SCALAR_FACTOR,SCALAR_ID,VECTOR,COORDINATE,VALUE,STATUS,SYMBOL,TERMINATED,DECIMALS
+2024,Canada,2021A000011124,Seeded area (hectares),Barley,Hectares,160,units,0,v1001,1.1.1,100,,r,,0
+2024,Canada,2021A000011124,Average yield (kilograms per hectare),Barley,Kilograms per hectare,194,units,0,v1002,1.1.2,3500,,,,0
+2024,Canada,2021A000011124,Production (metric tonnes),Barley,Metric tonnes,179,thousands,3,v1003,1.1.3,9.5,,r,,1
+2025,Alberta,2021A000248,Harvested area (hectares),"Peas, dry",Hectares,160,units,0,v1004,2.5.2,,..,,,0
+2025,Saskatchewan,2021A000247,Production (metric tonnes),"Wheat, spring",Metric tonnes,179,units,0,v1005,3.3.4,123456,,,,0
+2025,Manitoba,2021A000246,Production (metric tonnes),"Wheat, durum",Metric tonnes,179,units,0,v1006,4.4.4,789,,,,0
+2025,Ontario,2021A000235,Production (metric tonnes),Canola (rapeseed),Metric tonnes,179,units,0,v2001,5.2.4,10,,,,0
+2025,Canada,2021A000011124,Production (metric tonnes),Oats,Metric tonnes,179,units,0,v2002,1.9.4,20,,,,0
+2025,Canada,2021A000011124,Production (bushels),Canola (rapeseed),Bushels,150,units,0,v2003,1.2.9,30,,,,0

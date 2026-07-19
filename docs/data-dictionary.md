@@ -22,3 +22,39 @@ does not establish that all reported production is yellow peas.
 
 Production is retained as a source observation rather than silently
 recalculated from rounded area and yield values.
+
+## Statistics Canada processed observations
+
+`data/processed/statcan_crop_production.csv` is a long-form local artifact. Raw
+and normalized values are deliberately separate.
+
+| Field | Meaning |
+|---|---|
+| `publisher` | Official publisher (`Statistics Canada`) |
+| `source_table` | Statistics Canada table number (`32-10-0359-01`) |
+| `product_id` | Statistics Canada product ID (`32100359`) |
+| `source_url` | Full-table CSV ZIP URL |
+| `release_date` | Release date shown on the table page when retrieved |
+| `retrieved_at` | UTC retrieval timestamp in ISO 8601 format |
+| `reference_period` | Source `REF_DATE`; annual crop reference year |
+| `commodity` | Canonical AgSure commodity slug |
+| `source_crop` | Unchanged Statistics Canada crop label |
+| `geography` | Source geography label |
+| `dguid` | Statistics Canada dissemination geography identifier |
+| `metric` | `seeded-area`, `harvested-area`, `yield`, or `production` |
+| `source_value` | Unscaled source `VALUE`; blank stays blank |
+| `source_unit` | Unchanged source `UOM` |
+| `scalar_factor` | Unchanged source `SCALAR_FACTOR` |
+| `value` | Scalar-adjusted metric value; blank when source is blank |
+| `unit` | Internal metric unit: hectares, tonnes/hectare, or tonnes |
+| `observation_status` | Statistical nature of the value (`estimated`) |
+| `status_marker` | Unchanged source `STATUS`, including unavailable (`..`) and quality markers |
+| `symbol` | Unchanged source `SYMBOL`; revisions currently appear as `r` here |
+| `terminated` | Unchanged source `TERMINATED` marker |
+| `decimals` | Source display precision |
+| `vector` | Statistics Canada vector identifier |
+| `coordinate` | Statistics Canada cube coordinate |
+
+Scalar factors are applied before unit conversion. Yield is converted from
+kilograms per hectare to tonnes per hectare by multiplying by `0.001`. The
+source value and unit remain available to reproduce that transformation.
