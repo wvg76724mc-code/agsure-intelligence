@@ -142,19 +142,27 @@ def _parse_release_date(page: str) -> str:
 
 def _request(url: str):
     request = urllib.request.Request(
-        url, headers={"User-Agent": "AgSure-Intelligence/0.2 (+source ingestion)"}
+        url, headers={"User-Agent": "AgSure-Intelligence/0.3 (+source ingestion)"}
     )
     return urllib.request.urlopen(request, timeout=120)
 
 
-def download_table(
-    cache_dir: str | Path = DEFAULT_CACHE_DIR, *, force: bool = False
+def download_archive(
+    cache_dir: str | Path,
+    *,
+    publisher: str,
+    source_table: str,
+    product_id: str,
+    source_url: str,
+    download_url: str,
+    table_url: str,
+    force: bool = False,
 ) -> tuple[Path, DownloadMetadata]:
-    """Download and cache the full StatCan archive plus retrieval metadata."""
+    """Download and cache a full StatCan archive plus retrieval metadata."""
     directory = Path(cache_dir)
     directory.mkdir(parents=True, exist_ok=True)
-    archive = directory / f"{PRODUCT_ID}-eng.zip"
-    metadata_path = directory / f"{PRODUCT_ID}-retrieval.json"
+    archive = directory / f"{product_id}-eng.zip"
+    metadata_path = directory / f"{product_id}-retrieval.json"
 
     if archive.exists() and metadata_path.exists() and not force:
         stored = json.loads(metadata_path.read_text(encoding="utf-8"))
@@ -167,7 +175,7 @@ def download_table(
         return archive, metadata
 
     retrieved_at = _utc_now().isoformat().replace("+00:00", "Z")
-    with _request(TABLE_URL) as response:
+    with _request(table_url) as response:
         page = response.read().decode("utf-8", errors="replace")
     release_date = _parse_release_date(page)
 
@@ -176,7 +184,7 @@ def download_table(
     ) as temp:
         temporary_archive = Path(temp.name)
         try:
-            with _request(DOWNLOAD_URL) as response:
+            with _request(download_url) as response:
                 shutil.copyfileobj(response, temp)
         except BaseException:
             temporary_archive.unlink(missing_ok=True)
@@ -195,10 +203,10 @@ def download_table(
         raise
 
     metadata = DownloadMetadata(
-        publisher=PUBLISHER,
-        source_table=SOURCE_TABLE,
-        product_id=PRODUCT_ID,
-        source_url=SOURCE_URL,
+        publisher=publisher,
+        source_table=source_table,
+        product_id=product_id,
+        source_url=source_url,
         release_date=release_date,
         retrieved_at=retrieved_at,
         sha256=digest,
@@ -208,6 +216,22 @@ def download_table(
         json.dumps(asdict(metadata), indent=2) + "\n", encoding="utf-8"
     )
     return archive, metadata
+
+
+def download_table(
+    cache_dir: str | Path = DEFAULT_CACHE_DIR, *, force: bool = False
+) -> tuple[Path, DownloadMetadata]:
+    """Download and cache the production table plus retrieval metadata."""
+    return download_archive(
+        cache_dir,
+        publisher=PUBLISHER,
+        source_table=SOURCE_TABLE,
+        product_id=PRODUCT_ID,
+        source_url=SOURCE_URL,
+        download_url=DOWNLOAD_URL,
+        table_url=TABLE_URL,
+        force=force,
+    )
 
 
 def _sha256(path: Path) -> str:
