@@ -48,7 +48,7 @@ figure = px.line(
     markers=True,
     labels={"crop_year": "Crop year", "production_kt": "Production (kt)"},
 )
-st.plotly_chart(figure, use_container_width=True)
+st.plotly_chart(figure, width="stretch")
 
 if result is not None:
     st.subheader("Score components")
@@ -65,7 +65,7 @@ if result is not None:
             for item in result.components
         ]
     )
-    st.dataframe(components, hide_index=True, use_container_width=True)
+    st.dataframe(components, hide_index=True, width="stretch")
 
 with st.expander("Methodology and limitations"):
     methodology = Path(__file__).parents[2] / "docs" / "methodology.md"
