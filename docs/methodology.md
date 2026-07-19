@@ -11,6 +11,13 @@ enabled only for barley. Canola, spring wheat, durum wheat, and dry peas require
 separate component selection, weights, and backtesting before model scores are
 published.
 
+The v0.2 Statistics Canada slice supplies area, yield, and production only. It
+does not supply carry-out stocks, total use, precipitation, or growing-degree
+days. Consequently, official-source rows are never adapted into
+`CropYearObservation` objects and never produce the barley supply-pressure
+score. The dashboard calculates that demonstration score only after the user
+selects the complete synthetic dataset.
+
 ## Baseline
 
 The latest crop year is compared with the five immediately preceding crop
@@ -50,6 +57,9 @@ pressure. It does not directly predict price or basis.
 - Provincial statistics do not establish town-level production.
 - Local demand, quality, freight, competition, and buyer inventory are absent.
 - Synthetic sample data cannot be used to assess predictive accuracy.
+- Statistics Canada estimates may be revised, and historical rows in a current
+  full-table download reflect the latest published vintage rather than a
+  point-in-time vintage archive.
 
 Before commercial use, weights must be backtested against out-of-sample
 production and basis outcomes with documented error metrics.

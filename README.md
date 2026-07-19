@@ -1,7 +1,7 @@
 # AgSure Intelligence
 
 AgSure Intelligence is a transparent, source-traceable agricultural market
-intelligence project. Version 0.1 tracks five Prairie crops:
+intelligence project. Version 0.2 tracks five Prairie crops:
 
 - Barley
 - Canola
@@ -14,9 +14,9 @@ Barley is the first fully implemented analytical vertical. It asks:
 > Is the Southern Alberta barley supply outlook becoming tighter or more
 > abundant than its recent historical baseline?
 
-This first checkpoint proves the calculation and data architecture using
-**synthetic demonstration data only**. It does not yet publish a real crop
-forecast or trading recommendation.
+The dashboard can show synthetic demonstration history or a narrow official
+Statistics Canada production-data slice. Official observations are displayed
+for monitoring only; they are not a crop forecast or trading recommendation.
 
 ## What works now
 
@@ -27,6 +27,11 @@ forecast or trading recommendation.
 - Reports every component and weight used in the indicator.
 - Includes a PostgreSQL/PostGIS schema for source and revision tracking.
 - Includes automated tests and a small Streamlit dashboard.
+- Downloads and caches Statistics Canada table 32-10-0359-01.
+- Normalizes seeded area, harvested area, yield, and production for Canada and
+  the three Prairie provinces while retaining row-level provenance.
+- Keeps official-source production observations separate from the synthetic
+  inputs required by the supply-pressure demonstration score.
 
 ## Quick start
 
@@ -45,6 +50,18 @@ source .venv/bin/activate
 python -m pip install -e ".[dashboard]"
 streamlit run src/agsure/dashboard.py
 ```
+
+To download the full official table and write the dashboard-ready processed
+CSV (the raw and processed data directories are intentionally ignored by Git):
+
+```bash
+PYTHONPATH=src python -m agsure.statcan
+```
+
+The command reuses a cached ZIP after verifying its SHA-256 digest. Pass
+`--force` only when intentionally retrieving a new release. The processed file
+is written to `data/processed/statcan_crop_production.csv` by default. Download
+and parsing use the Python standard library.
 
 For PostgreSQL/PostGIS:
 
@@ -67,21 +84,20 @@ trailing five-year baseline:
 This barley model is initially a documented heuristic, not a validated price forecast. See
 [`docs/methodology.md`](docs/methodology.md).
 
-## Planned live sources
+## Data sources
 
-1. Statistics Canada crop area, yield, production, and stocks.
-2. Agriculture and Agri-Food Canada supply and disposition.
-3. Environment and Climate Change Canada daily weather observations.
-4. AAFC Annual Crop Inventory spatial classifications.
-5. USDA NASS comparison data after the Canadian pipeline is stable.
+Statistics Canada table 32-10-0359-01 is the first implemented official-source
+connector. Stocks, supply and disposition, weather, bids, and prices remain out
+of scope for v0.2.
 
 The initial approved Statistics Canada tables and ingestion requirements are
 listed in [`docs/data-sources.md`](docs/data-sources.md).
 
 ## Project status
 
-**Pre-alpha / portfolio foundation.** Synthetic data is deliberately prominent
-so nobody can mistake this checkpoint for commercial market advice.
+**Pre-alpha / portfolio foundation.** Source type and observation status remain
+prominent so official-source estimates cannot be confused with synthetic model
+inputs or commercial market advice.
 
 ## Copyright
 

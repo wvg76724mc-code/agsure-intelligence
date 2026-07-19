@@ -8,6 +8,6 @@ __pycache__/
 *.py[cod]
 build/
 dist/
-data/raw/
-data/processed/
-
+# Downloaded government data and generated dashboard artifacts stay local.
+data/raw/**
+data/processed/*.csv
