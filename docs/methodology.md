@@ -1,8 +1,49 @@
 # Methodology
 
+## Official regional crop conditions
+
+Version 0.7 adds descriptive weekly crop-report context without changing any
+v0.2–v0.6 calculation. Each province has its own parser because its report
+periods, layouts, crop terms, regions, condition definitions, and status terms
+differ. Shared code is limited to verified downloads, SHA-256, cache metadata,
+embedded-text extraction, normalized validation, and atomic writes.
+
+Alberta retains only the source-published combined `Per Cent Rated
+Good-to-Excellent Conditions` cells for exact crops in Table 1. AgSure does not
+reconstruct the underlying categories or use all-crops baselines for a crop.
+Saskatchewan retains each exact five-category crop-condition percentage. A
+complete available distribution must contain exactly `excellent`, `good`,
+`fair`, `poor`, and `very poor` and total within one percentage point of 100 to
+allow published rounding. `No Response(s)` produces an entirely unavailable
+cell, not a zero, carried value, or interpolated estimate.
+
+Manitoba's representative report is validated for its title, publisher,
+commodity section, regional-comments section, and all five region headings.
+Its crop content is narrative and contains crop-stage ranges rather than exact
+regional condition distributions. The adapter intentionally returns no numeric
+observations. Narrative phrases are not summarized, scored, classified, or
+converted to numbers.
+
+Dashboard history and the previous value use the exact same province, official
+region label and ID, commodity, observation type, source measure, category,
+unit, baseline identity, and source program. The previous value must end exactly
+seven days before the user-selected row, including when an older row is
+selected. Percentage changes are percentage points. A source-published baseline
+would be a separate baseline identity; AgSure does not calculate one from this
+narrow history. Saskatchewan `Field Pea` has its own `field-peas` identity and
+is not joined to Statistics Canada `dry-peas`. Missing weeks are not
+interpolated and prior values are not carried forward.
+
+There is no Prairie average or condition index. Regional systems and condition
+definitions are not commensurate, and a short, incomplete 2026 sample cannot
+support a validated weighting method. Weekly survey-based, reported, estimated,
+or qualitative conditions can change rapidly and do not directly predict final
+yield, production, price, bids, or stocks-to-use. They are descriptive context,
+not recommendations to buy, sell, bid, or contract grain.
+
 ## Unified commodity overview
 
-Version 0.6 makes a unified official overview the dashboard default without
+Version 0.7 retains the unified official overview as the dashboard default without
 changing the v0.2–v0.5 ingestion or calculation methods. A standard-library,
 Streamlit-free view-model loads the existing normalized production, stocks,
 supply-and-disposition, and derived stocks-to-use CSVs. It validates required
@@ -228,6 +269,15 @@ pressure. It does not directly predict price or basis.
   beginning-stock components at the December 1998 and March 1999 snapshots,
   followed by nonzero July 1999 values for the same 1998/1999 crop year. AgSure
   preserves these source observations and does not repair or reinterpret them.
+- Crop-report history is one representative current 2026 report per province,
+  not a complete weekly or revision archive.
+- Alberta and Saskatchewan embedded PDF table geometry can change; the parsers
+  fail closed and require fixture plus live reconciliation before a new layout
+  is accepted.
+- Manitoba's regional agronomic content is narrative in the validated report,
+  so exact numeric crop-condition series are unavailable.
+- Official region names, boundaries, survey methods, and condition definitions
+  differ by province and cannot be compared as a unified Prairie series.
 
 Before commercial use, weights must be backtested against out-of-sample
 production and basis outcomes with documented error metrics.

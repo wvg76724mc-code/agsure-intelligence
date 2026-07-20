@@ -3,7 +3,108 @@
 Only official, licensed, and documented sources may feed production indicators.
 This registry distinguishes implemented and planned connectors.
 
-## Unified overview use in v0.6
+## Official Prairie crop reports in v0.7
+
+Live validation was performed on 2026-07-19 against the canonical report pages
+and representative documents below. Full PDFs were downloaded only to a local
+temporary/cache location, verified with SHA-256, and not committed.
+
+### Alberta Crop Reporting Program
+
+- Publisher: Government of Alberta, Agriculture and Irrigation
+- Collection: `https://open.alberta.ca/publications/2830245`
+- Frequency: weekly during the crop season; the collection distinguishes full
+  and abbreviated reports
+- Validated full report: `Crop conditions as of July 14, 2026`, released July
+  17, 2026; SHA-256
+  `3f3f627bfe547e8b736c8ba3f517fdff4b9ef784bff72ea6da97744bb99661b1`
+- Extraction: pypdf embedded text in layout mode; Table 1 on PDF page 1
+- Regions retained exactly from Table 1: `South`, `Central`, `N East`, `N
+  West`, `Peace`, `Alberta`
+- Crops retained: `Spring Wheat`, `Durum`, `Barley`, `Canola`, `Dry Peas`
+- Measure retained: exact source combined measure `Per Cent Rated
+  Good-to-Excellent Conditions`
+
+The report publishes `-` for unavailable crop/region cells; those remain blank
+normalized values with `observation_status=unavailable`. AgSure does not split
+the combined measure into categories. Table 1's `Major Crops`, `All Crops`, and
+all-crops five- and ten-year averages are not mapped to an exact commodity.
+Charts and narrative values are not extracted. The source notes that percentage
+totals may not equal 100 due to rounding and requires accreditation to AFSC and
+the Government of Alberta.
+
+### Saskatchewan Crop Report
+
+- Publisher: Government of Saskatchewan, Ministry of Agriculture
+- Canonical page: `https://www.saskatchewan.ca/business/agriculture-natural-resources-and-industry/agribusiness-farmers-and-ranchers/market-and-trade-statistics/crops-statistics/crop-report`
+- Frequency: weekly for approximately 27 growing-season weeks from April 1
+- Validated table: `Saskatchewan Crop Conditions - July 7 to July 13, 2026`;
+  SHA-256
+  `3afd5da1a550586fe4be2e927576089c0659fdc38024ed0920e40b6547e1525c`
+- Extraction: pypdf embedded text in layout mode; two-page `Crop Conditions
+  Table 2026`
+- Regions retained: `Provincial`, `South East`, `South West`, `East Central`,
+  `West Central`, `North East`, `North West`
+- Crops retained: `Spring Wheat`, `Durum`, `Barley`, `Canola`, `Field Pea`
+- Categories retained: exact lowercase `excellent`, `good`, `fair`, `poor`,
+  and `very poor`
+
+The source's `No Response(s)` is retained as an unavailable status and is never
+filled. Each available five-category distribution is checked against 100 per
+cent with a one-percentage-point rounding tolerance. `Field Pea` uses the
+distinct regional identity `field-peas`; the unchanged source term is preserved
+and it is never joined to Statistics Canada's `dry-peas` series. No definitional
+equivalence is claimed. Crop-development aggregates
+such as `Spring Cereals`, maps, and narrative pages are not crop-specific
+substitutes.
+
+### Manitoba Crop Report
+
+- Publisher: Government of Manitoba, Manitoba Agriculture
+- Canonical page: `https://www.gov.mb.ca/agriculture/crops/seasonal-reports/crop-report/`
+- Frequency: weekly growing-season PDFs; the page exposes current and annual
+  archives
+- Validated report: `Crop Report - July 14, 2026`; SHA-256
+  `eb0b9bc5135256647ad5194aa7f992898c1e72c1b05cc75e0586744cef2e681a`
+- Official report regions: `Southwest`, `Northwest`, `Central`, `Eastern`, and
+  `Interlake`
+- Official reporting-area definition map:
+  `https://www.gov.mb.ca/agriculture/crops/seasonal-reports/pubs/crop-report-map.pdf`
+  (`Manitoba Agricultural Reporting`, dated April 6, 2020)
+- Extraction status: current format contract validated, numeric grain-crop
+  observations unsupported in v0.7
+
+The representative report provides crop stages and regional observations in
+narrative prose, sometimes as ranges. It does not provide an exact structured
+crop-by-region condition distribution comparable to Alberta or Saskatchewan.
+AgSure emits no Manitoba numeric rows, does not infer values from phrases such
+as “good,” and shows an explicit unavailable state. The agronomic narrative
+does not publish an exact reporting-period start/end separate from the report
+date, so AgSure does not borrow the weather table's July 6–12 period. The structured weather
+table is not ingested because weather belongs to v0.8.
+The map associates municipal areas with the five reporting districts. AgSure
+retains only the district label and does not convert it into a municipality,
+town, census division, or another province's region.
+
+### History and format risk
+
+Coverage is intentionally limited to the three representative July 2026
+documents above; it is not a complete historical series. Current-report URLs
+represent the latest retrieved documents, not point-in-time web archives.
+Alberta abbreviated reports, changed historical layouts, Saskatchewan table
+geometry, and Manitoba narrative structure are explicit format-drift risks.
+Every adapter checks titles, periods, exact table/header counts, crop labels,
+regions, and units and fails closed when a locator changes.
+
+Similarly named regions in different provinces are different publisher-defined
+geographies. They are never translated, joined, or averaged. No provincial
+value is calculated from regions and no Prairie condition score is calculated.
+AgSure stores structured facts and short labels only; it does not redistribute
+full reports or long narrative passages. The dashboard links to the canonical
+document and exposes page/table provenance. Alberta's accreditation note is
+preserved in documentation, and all publishers remain explicitly attributed.
+
+## Unified overview use in v0.7
 
 The overview is a read-only presentation of the existing processed artifacts;
 it is not another ingestion pipeline and does not redownload a source. The
@@ -154,6 +255,16 @@ product exports. The full note text remains in the cached raw metadata CSV.
 - Never combine stocks from different reporting dates without an explicit
   transformation.
 - Add a fixture-based parser test before loading observations into PostgreSQL.
+
+Crop reports use separate Alberta, Saskatchewan, and Manitoba adapters. Only
+download/cache/digest, embedded-text extraction, validation, and atomic-output
+utilities are shared. `python -m agsure.crop_conditions.ingest` stages each new
+PDF under `data/raw/crop_conditions/` and promotes it with retrieval metadata
+only after successful extraction and parsing. It writes the processed CSV and
+a manifest sharing an artifact SHA-256 generation. Readers reject missing,
+stale, or mismatched manifests, including an interrupted two-file publication.
+A failed parser cannot replace a prior valid cache or processed artifact. Tests
+use clearly marked synthetic source-shaped fixtures and require no network.
 
 ## Cache and transformation
 

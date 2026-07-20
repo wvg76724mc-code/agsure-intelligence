@@ -11,3 +11,5 @@ dist/
 # Downloaded government data and generated dashboard artifacts stay local.
 data/raw/**
 data/processed/*.csv
+data/processed/*.json
+data/processed/*.CURRENT

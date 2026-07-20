@@ -1,5 +1,42 @@
 # Data dictionary
 
+## Official regional crop conditions
+
+`data/processed/crop_conditions.csv` is a separate normalized long-form
+artifact. It never enters `CropYearObservation`, stocks-to-use, or the synthetic
+supply-pressure calculation.
+
+| Field | Meaning |
+|---|---|
+| `publisher`, `source_program`, `source_report_title` | Publisher and exact report identity |
+| `source_url`, `source_document_url` | Canonical program page and exact document |
+| `source_document_sha256` | Digest of the locally verified source document |
+| `release_date`, `retrieved_at` | Source release and UTC retrieval vintage |
+| `reporting_period_start`, `reporting_period_end`, `crop_year` | Published period; start is blank when Alberta publishes only an as-of date |
+| `province` | Publisher jurisdiction, never inferred from a region name |
+| `source_region`, `source_region_id`, `geography_level` | Unchanged label, province-scoped stable identifier, and official level |
+| `commodity` | Exact internal crop identity; Saskatchewan `Field Pea` is `field-peas`, distinct from Statistics Canada `dry-peas` |
+| `source_crop` | Unchanged crop label such as `Field Pea` or `Dry Peas` |
+| `observation_type`, `source_measure`, `category` | Normalized type plus exact source measure/category labels |
+| `source_value`, `value` | Unchanged display value and separate normalized numeric text |
+| `source_unit`, `unit` | Exact `%` and normalized `percent`; no condition score conversion |
+| `baseline_type`, `baseline_period` | `current` for retained v0.7 rows; source baselines remain separate when implemented |
+| `observation_status` | `estimated`, `reported estimate`, or explicit unavailable wording |
+| `extraction_method` | `embedded_pdf_text`; OCR is not used |
+| `source_page`, `source_table`, `source_section`, `source_note` | Page/table/section provenance and necessary note |
+| `revision_marker` | Source revision marker when present; blank is not interpreted as unrevised forever |
+| `parser_version` | Adapter contract version (`0.7.0`) |
+
+The normalized key includes province, region ID, commodity, observation type,
+source measure, category, unit, baseline identity, and reporting period. Region
+IDs are province-scoped: Alberta `south` is not Saskatchewan `south-east`, and
+Manitoba `southwest` is neither one. Missing source cells retain their raw token
+and status while normalized `value` remains blank.
+
+`crop_conditions.manifest.json` records the artifact filename, SHA-256-backed
+generation, schema version, and row count. The reader requires an exact match;
+the CSV is unavailable if publication was interrupted or either file is stale.
+
 ## Unified overview view model
 
 `agsure.unified_overview` reads the four normalized or derived local artifacts
