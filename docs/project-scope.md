@@ -1,10 +1,10 @@
-# AgSure Intelligence v0.6 scope
+# AgSure Intelligence v0.7 scope
 
 ## Decision question
 
-What is the clearest official overview of production, stocks, supply and
-disposition, and completed-crop-year stocks-to-use for a selected commodity,
-without weakening the identities and guardrails established in v0.2–v0.5?
+What traceable weekly agronomic context can the official Alberta,
+Saskatchewan, and Manitoba crop-report programs support without weakening the
+identities and guardrails established in v0.2–v0.6?
 
 ## Included
 
@@ -35,8 +35,20 @@ without weakening the identities and guardrails established in v0.2–v0.5?
   Canada-only values stay visibly Canada-level.
 - Explicit unavailable sections rather than proxy series or older-value
   substitution, including spring-wheat limitations.
+- A separate official regional crop-conditions artifact and separate province
+  adapters using embedded PDF text only.
+- Alberta exact crop-by-region combined good-to-excellent observations and
+  Saskatchewan exact crop-by-region five-category distributions for five exact
+  source crops. Saskatchewan `Field Pea` uses a distinct regional identity and
+  is not equated with Statistics Canada `dry-peas`.
+- Manitoba current-format and official-region validation with explicit numeric
+  unavailability because the representative regional content is narrative.
+- A detailed crop-conditions view and a compact unified-overview section that
+  requires province and exact official-region selection.
+- One representative July 2026 report per province; history completeness is
+  explicitly narrow and tested as such.
 
-## Excluded from v0.6
+## Excluded from v0.7
 
 - Cash-bid recommendations.
 - Futures or automated trading.
@@ -60,6 +72,13 @@ without weakening the identities and guardrails established in v0.2–v0.5?
   visual redesign, or AI-generated narrative.
 - New official-source downloads solely for overview rendering, ingestion-module
   consolidation, deletion of specialist views, or broad dashboard restyling.
+- Weather-station ingestion, crop weather tables, satellite imagery, NDVI,
+  remote sensing, soil-moisture models, yield or price forecasting, cash bids,
+  town-level estimates, producer observations, automated email reports, and
+  AI-generated crop summaries.
+- Cross-province category comparisons, Prairie averages or condition scores,
+  regional-to-provincial aggregation, and any change to the synthetic
+  72.1/100 result.
 
 ## Completion criteria
 

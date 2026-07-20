@@ -1,7 +1,7 @@
 # AgSure Intelligence
 
 AgSure Intelligence is a transparent, source-traceable agricultural market
-intelligence project. Version 0.6 tracks five Prairie crops:
+intelligence project. Version 0.7 tracks five Prairie crops:
 
 - Barley
 - Canola
@@ -14,13 +14,36 @@ Barley is the first fully implemented analytical vertical. It asks:
 > Is the Southern Alberta barley supply outlook becoming tighter or more
 > abundant than its recent historical baseline?
 
-The dashboard opens on a unified official commodity overview while retaining
+The dashboard opens on a unified official commodity overview and adds an
+official weekly regional crop-conditions slice while retaining
 the synthetic demonstration and every detailed production, stocks,
 supply-and-disposition, and stocks-to-use view. Official observations and
 calculations are displayed for monitoring only; they are not forecasts, trading
 signals, recommendations, or validated predictors.
 
 ## What works now
+
+- Ingests embedded PDF text from representative 2026 Alberta and Saskatchewan
+  official crop reports into a separate normalized long-form artifact with
+  document SHA-256, release/retrieval dates, exact crop and region labels,
+  status, raw value, page/table provenance, extraction method, and parser
+  version. OCR is not used.
+- Retains Alberta's exact published `Per Cent Rated Good-to-Excellent
+  Conditions` for barley, canola, spring wheat, durum, and dry peas at the
+  provincial level and in South, Central, N East, N West, and Peace wherever
+  the source publishes a value.
+- Retains Saskatchewan's exact `excellent`, `good`, `fair`, `poor`, and `very
+  poor` crop-condition distributions for barley, canola, spring wheat, durum,
+  and the distinct regional identity `field-peas`, preserving the source term
+  `Field Pea`, at provincial and six official regions. It is never joined to
+  Statistics Canada's `dry-peas` identity.
+- Validates Manitoba's current title, publisher, commodity, and five regional
+  section contracts but reports numeric crop conditions unavailable because
+  the current regional content is narrative. Narrative is never converted to
+  a number.
+- Adds a detailed official regional view and a gated compact overview section.
+  A province and its exact official region must be selected; no Prairie average
+  or regional condition score is calculated.
 
 - Presents the available official production, stocks, supply-and-disposition,
   and stocks-to-use histories together for one commodity, with latest values,
@@ -87,6 +110,22 @@ python -m pip install -e ".[dashboard]"
 streamlit run src/agsure/dashboard.py
 ```
 
+For official crop-report PDF ingestion, install the separate PDF extra and run:
+
+```bash
+python -m pip install -e ".[crop-conditions]"
+PYTHONPATH=src python -m agsure.crop_conditions.ingest
+```
+
+Raw PDFs, retrieval sidecars, processed CSVs, and manifests are written into an
+immutable directory under `data/raw/crop_conditions/generations/`. The logical
+processed path remains `data/processed/crop_conditions.csv`; readers resolve
+its adjacent `crop_conditions.CURRENT` regular-file pointer once and read both
+processed files from that generation. Ingestion replaces CURRENT only after all
+three provinces and processed outputs are validated, hashed, flushed, and
+fsynced. Prior generations remain available after interruption. The adapters
+fail closed and do not invoke OCR.
+
 To download the full official table and write the dashboard-ready processed
 CSV (the raw and processed data directories are intentionally ignored by Git):
 
@@ -138,15 +177,20 @@ Statistics Canada tables 32-10-0359-01, 32-10-0007-01, and 32-10-0013-01 are
 implemented official-source connectors. Table 32-10-0013-01 says the selected
 crops use an August–July crop year and its March, July, and December periods are
 cumulative over that crop year. Version 0.5 introduced the July-only calculation
-retained by v0.6:
+retained by v0.7:
 `Total ending stocks / (Total exports + Total domestic disappearance) * 100`.
 `Total disposition` is not the denominator because it includes ending stocks.
 The current cube has no spring-wheat-specific supply-and-disposition member;
 AgSure does not map `All wheat` or `Wheat, excluding durum` to spring wheat.
-Weather, bids, prices, price forecasts, and a real-data supply-pressure score
+Regional crop-report observations remain separate from annual Statistics
+Canada production and Canada-level supply/disposition. Province region systems
+are not interchangeable, `Field Pea` is not asserted to be definitionally
+identical to Statistics Canada's `Peas, dry`, and weekly conditions are not
+claimed to predict yield, production, prices, bids, or stocks-to-use. Weather,
+bids, prices, price forecasts, and a real-data supply-pressure score
 remain out of scope.
 
-The v0.6 overview selects the greatest source reference period for each exact
+The v0.7 overview retains the greatest-source-period selection for each exact
 series identity. If that newest source row is unpublished or cannot be
 calculated, the value is unavailable; an older published row is not silently
 substituted. Stocks histories contain one exact stock type and snapshot period.

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agsure-intelligence"
-version = "0.6.0"
+version = "0.7.0"
 description = "Transparent Prairie crop market-intelligence foundation"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -13,11 +13,13 @@ dependencies = []
 
 [project.optional-dependencies]
 dashboard = ["pandas>=2.2,<3", "plotly>=5.24,<7", "streamlit>=1.53,<2"]
+crop-conditions = ["pypdf>=5,<7"]
 dev = ["pytest>=8,<9", "ruff>=0.8,<1"]
 
 [project.scripts]
 agsure = "agsure.cli:main"
 agsure-stocks-to-use = "agsure.stocks_to_use:main"
+agsure-crop-conditions = "agsure.crop_conditions.ingest:main"
 
 [tool.setuptools]
 package-dir = { "" = "src" }

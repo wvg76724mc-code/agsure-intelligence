@@ -8,6 +8,14 @@ import streamlit as st
 
 from agsure.analysis import calculate_supply_pressure
 from agsure.commodities import COMMODITIES
+from agsure.crop_conditions.artifact import (
+    PROVINCE_REGIONS,
+    UNAVAILABLE as REGIONAL_UNAVAILABLE,
+    compare_selected_period,
+    options as regional_options,
+    read_artifact as read_crop_conditions,
+    select_series as select_regional_series,
+)
 from agsure.io import load_observations
 from agsure.stocks import compare_same_snapshot
 from agsure.statcan_supply_disposition import MEASURES as SUPPLY_DISPOSITION_MEASURES
@@ -30,11 +38,21 @@ STATCAN_PRODUCTION_PATH = PROCESSED_DIR / "statcan_crop_production.csv"
 STATCAN_STOCKS_PATH = PROCESSED_DIR / "statcan_crop_stocks.csv"
 STATCAN_SUPPLY_DISPOSITION_PATH = PROCESSED_DIR / "statcan_supply_disposition.csv"
 STATCAN_STOCKS_TO_USE_PATH = PROCESSED_DIR / "statcan_stocks_to_use.csv"
+CROP_CONDITIONS_PATH = PROCESSED_DIR / "crop_conditions.csv"
 METRIC_LABELS = {
     "seeded-area": "Seeded area",
     "harvested-area": "Harvested area",
     "yield": "Yield",
     "production": "Production",
+}
+REGIONAL_COMMODITY_LABELS = {
+    **{slug: definition.display_name for slug, definition in COMMODITIES.items()},
+    "field-peas": "Field Pea",
+}
+REGIONAL_COMMODITIES = {
+    "Alberta": ("barley", "canola", "spring-wheat", "durum-wheat", "dry-peas"),
+    "Saskatchewan": ("barley", "canola", "spring-wheat", "durum-wheat", "field-peas"),
+    "Manitoba": ("barley", "canola", "spring-wheat", "durum-wheat", "dry-peas"),
 }
 
 
@@ -761,6 +779,199 @@ def _series_chart(series: SeriesView, title: str) -> None:
         _show_unavailable(series)
 
 
+def _regional_rows() -> list[dict[str, str]] | None:
+    try:
+        return read_crop_conditions(CROP_CONDITIONS_PATH)
+    except (FileNotFoundError, ValueError) as exc:
+        st.warning(str(exc))
+        return None
+
+
+def _regional_metric(row: dict[str, str]) -> str:
+    return "Not available" if not row["value"] else f"{Decimal(row['value']):,.1f}%"
+
+
+def _show_regional_provenance(row: dict[str, str]) -> None:
+    st.caption(
+        f"Reporting period: {row['reporting_period_start'] or 'not published'} to "
+        f"{row['reporting_period_end']} · Release: {row['release_date']} · "
+        f"Unit: {row['unit']} · Status: {row['observation_status']} · "
+        f"Extraction: {row['extraction_method']} · Retrieved: {row['retrieved_at']}"
+    )
+    st.markdown(f"[Open official report]({row['source_document_url']})")
+
+
+def show_crop_conditions() -> None:
+    st.info(
+        "Official weekly regional crop-report observations. Province reporting "
+        "systems, crop terms, condition definitions, and periods differ and are "
+        "not interchangeable. These observations are not forecasts or trading signals."
+    )
+    rows = _regional_rows()
+    if rows is None:
+        return
+    province = st.selectbox(
+        "Province", options=tuple(PROVINCE_REGIONS), key="regional_province"
+    )
+    region_pairs = PROVINCE_REGIONS[province]
+    source_region_id = st.selectbox(
+        "Official source region",
+        options=[item[1] for item in region_pairs],
+        format_func=dict((identifier, label) for label, identifier in region_pairs).get,
+        key=f"regional_region_{province}",
+    )
+    commodity = st.selectbox(
+        "Commodity",
+        options=REGIONAL_COMMODITIES[province],
+        format_func=REGIONAL_COMMODITY_LABELS.get,
+        key=f"regional_commodity_{province}",
+    )
+    if commodity == "field-peas":
+        st.caption(
+            "Field Pea is the Saskatchewan report's exact crop identity; it is "
+            "not treated as equivalent to Statistics Canada's Dry Peas series."
+        )
+    observation_types = regional_options(
+        rows, "observation_type", province=province,
+        source_region_id=source_region_id, commodity=commodity,
+    )
+    if not observation_types:
+        st.warning(
+            f"{REGIONAL_UNAVAILABLE}: {province} / "
+            f"{dict((identifier, label) for label, identifier in region_pairs)[source_region_id]} / "
+            f"{REGIONAL_COMMODITY_LABELS[commodity]}. The source may publish only "
+            "narrative or an incompatible crop identity."
+        )
+        return
+    observation_type = st.selectbox(
+        "Observation type", options=observation_types,
+        key=f"regional_observation_type_{province}_{source_region_id}_{commodity}",
+    )
+    measures = regional_options(
+        rows, "source_measure", province=province, source_region_id=source_region_id,
+        commodity=commodity, observation_type=observation_type,
+    )
+    source_measure = st.selectbox(
+        "Exact source measure", options=measures,
+        key=(f"regional_measure_{province}_{source_region_id}_{commodity}_"
+             f"{observation_type}"),
+    )
+    categories = regional_options(
+        rows, "category", province=province, source_region_id=source_region_id,
+        commodity=commodity, observation_type=observation_type,
+        source_measure=source_measure,
+    )
+    category = st.selectbox(
+        "Category", options=categories,
+        key=(f"regional_category_{province}_{source_region_id}_{commodity}_"
+             f"{observation_type}_{source_measure}"),
+    )
+    series = select_regional_series(
+        rows, province=province, source_region_id=source_region_id,
+        commodity=commodity, observation_type=observation_type,
+        source_measure=source_measure, category=category,
+    )
+    periods = [row["reporting_period_end"] for row in series.rows]
+    selected_period = st.selectbox(
+        "Reporting period", options=periods, index=len(periods) - 1,
+        key=(f"regional_reporting_period_{province}_{source_region_id}_{commodity}_"
+             f"{observation_type}_{source_measure}_{category}"),
+    )
+    comparison = compare_selected_period(series.rows, selected_period)
+    selected_row = comparison.selected
+    first, second, third = st.columns(3)
+    first.metric("Selected official observation", _regional_metric(selected_row))
+    second.metric(
+        "Previous comparable report",
+        "Not available" if comparison.previous is None
+        else _regional_metric(comparison.previous),
+    )
+    third.metric(
+        "Change",
+        "Not available" if comparison.change_percentage_points is None
+        else f"{comparison.change_percentage_points:+.1f} pp",
+    )
+    _show_regional_provenance(selected_row)
+    chart_rows = [row for row in series.rows if row["value"]]
+    if chart_rows:
+        chart = pd.DataFrame(
+            {
+                "reporting_period_end": [row["reporting_period_end"] for row in chart_rows],
+                "value": [float(row["value"]) for row in chart_rows],
+            }
+        )
+        st.plotly_chart(
+            px.line(
+                chart,
+                x="reporting_period_end",
+                y="value",
+                markers=True,
+                labels={"reporting_period_end": "Reporting period end", "value": "Percent"},
+            ),
+            width="stretch",
+        )
+    st.info("No source-published baseline is available for this exact selected identity.")
+    with st.expander("Selected observation provenance"):
+        st.dataframe(pd.Series(selected_row, name="value").to_frame(), width="stretch")
+    st.warning(
+        "Weekly crop conditions can change rapidly and may not translate directly "
+        "into final production, yield, price, bids, or stocks-to-use."
+    )
+
+
+def show_compact_regional_conditions(commodity: str) -> None:
+    st.subheader("Regional crop conditions")
+    st.caption(
+        "Separate weekly provincial crop reports; not Canada-level annual "
+        "production and not an input to the synthetic 72.1/100 score."
+    )
+    rows = _regional_rows()
+    if rows is None:
+        return
+    province = st.selectbox(
+        "Regional source province",
+        options=tuple(PROVINCE_REGIONS),
+        index=None,
+        placeholder="Select a province",
+        key="unified_regional_province",
+    )
+    if province is None:
+        st.info("Select a province and its official source region to show observations.")
+        return
+    region_pairs = PROVINCE_REGIONS[province]
+    source_region_id = st.selectbox(
+        "Regional official source region",
+        options=[item[1] for item in region_pairs],
+        index=None,
+        placeholder="Select an official region",
+        format_func=dict((identifier, label) for label, identifier in region_pairs).get,
+        key=f"unified_regional_region_{province}",
+    )
+    if source_region_id is None:
+        st.info("Select an official source region to show observations.")
+        return
+    candidates = [
+        row for row in rows
+        if row["province"] == province
+        and row["source_region_id"] == source_region_id
+        and row["commodity"] == commodity
+        and row["value"]
+    ]
+    if not candidates:
+        st.warning(
+            f"{REGIONAL_UNAVAILABLE}: {province} / {source_region_id} / "
+            f"{COMMODITIES[commodity].display_name}."
+        )
+        return
+    latest_period = max(row["reporting_period_end"] for row in candidates)
+    latest = [row for row in candidates if row["reporting_period_end"] == latest_period]
+    for row in latest[:5]:
+        label = row["source_measure"] + (f" · {row['category']}" if row["category"] else "")
+        st.metric(label, _regional_metric(row))
+    _show_regional_provenance(latest[0])
+    st.warning("Regional systems and condition definitions differ by province.")
+
+
 def show_unified_overview() -> None:
     st.info(
         "Unified official commodity overview. Official published observations, "
@@ -884,6 +1095,8 @@ def show_unified_overview() -> None:
         ]
         for series in unavailable_snapshot:
             _show_unavailable(series)
+        st.divider()
+        show_compact_regional_conditions(commodity)
 
     with tabs[1]:
         metric = st.selectbox(
@@ -965,6 +1178,7 @@ source = st.selectbox(
         "statcan-stocks",
         "statcan-supply-disposition",
         "statcan-stocks-to-use",
+        "crop-conditions",
     ),
     format_func=lambda value: {
         "unified": "Unified commodity overview",
@@ -975,6 +1189,7 @@ source = st.selectbox(
             "Official Statistics Canada supply and disposition"
         ),
         "statcan-stocks-to-use": "Official stocks-to-use",
+        "crop-conditions": "Official regional crop conditions",
     }[value],
 )
 
@@ -988,8 +1203,10 @@ elif source == "statcan-stocks":
     show_statcan_stocks()
 elif source == "statcan-supply-disposition":
     show_statcan_supply_disposition()
-else:
+elif source == "statcan-stocks-to-use":
     show_statcan_stocks_to_use()
+else:
+    show_crop_conditions()
 
 with st.expander("Methodology and limitations"):
     st.markdown((ROOT / "docs" / "methodology.md").read_text(encoding="utf-8"))

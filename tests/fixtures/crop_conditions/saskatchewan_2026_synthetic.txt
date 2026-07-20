@@ -1,0 +1,93 @@
+SYNTHETIC TEST FIXTURE — NOT AN OFFICIAL GOVERNMENT REPORT
+Saskatchewan Crop Conditions - July 7 to July 13, 2026
+Provincial
+Winter Wheat Fall Rye Spring Wheat Durum Oats Barley Flax Canola
+excellent 20% 20% 20% 20% 20% 20% 20% 20%
+good 20% 20% 20% 20% 20% 20% 20% 20%
+fair 20% 20% 20% 20% 20% 20% 20% 20%
+poor 20% 20% 20% 20% 20% 20% 20% 20%
+very poor 20% 20% 20% 20% 20% 20% 20% 20%
+Triticale Mustard Soybean Lentil Field Pea Canaryseed Chickpea
+excellent 20% 20% 20% 20% 20% 20% 20%
+good 20% 20% 20% 20% 20% 20% 20%
+fair 20% 20% 20% 20% 20% 20% 20%
+poor 20% 20% 20% 20% 20% 20% 20%
+very poor 20% 20% 20% 20% 20% 20% 20%
+South East
+Winter Wheat Fall Rye Spring Wheat Durum Oats Barley Flax Canola
+excellent 20% 20% 20% 20% 20% 20% 20% 20%
+good 20% 20% 20% 20% 20% 20% 20% 20%
+fair 20% 20% 20% 20% 20% 20% 20% 20%
+poor 20% 20% 20% 20% 20% 20% 20% 20%
+very poor 20% 20% 20% 20% 20% 20% 20% 20%
+Triticale Mustard Soybean Lentil Field Pea Canaryseed Chickpea
+excellent 20% 20% 20% 20% 20% 20% 20%
+good 20% 20% 20% 20% 20% 20% 20%
+fair 20% 20% 20% 20% 20% 20% 20%
+poor 20% 20% 20% 20% 20% 20% 20%
+very poor 20% 20% 20% 20% 20% 20% 20%
+South West
+Winter Wheat Fall Rye Spring Wheat Durum Oats Barley Flax Canola
+excellent 20% 20% 20% 20% 20% 20% 20% 20%
+good 20% 20% 20% 20% 20% 20% 20% 20%
+fair 20% 20% 20% 20% 20% 20% 20% 20%
+poor 20% 20% 20% 20% 20% 20% 20% 20%
+very poor 20% 20% 20% 20% 20% 20% 20% 20%
+Triticale Mustard Soybean Lentil Field Pea Canaryseed Chickpea
+excellent 20% 20% 20% 20% 20% 20% 20%
+good 20% 20% 20% 20% 20% 20% 20%
+fair 20% 20% 20% 20% 20% 20% 20%
+poor 20% 20% 20% 20% 20% 20% 20%
+very poor 20% 20% 20% 20% 20% 20% 20%
+East Central
+Winter Wheat Fall Rye Spring Wheat Durum Oats Barley Flax Canola
+excellent 20% 20% 20% 20% 20% 20% 20% 20%
+good 20% 20% 20% 20% 20% 20% 20% 20%
+fair 20% 20% 20% 20% 20% 20% 20% 20%
+poor 20% 20% 20% 20% 20% 20% 20% 20%
+very poor 20% 20% 20% 20% 20% 20% 20% 20%
+Triticale Mustard Soybean Lentil Field Pea Canaryseed Chickpea
+excellent 20% 20% 20% 20% 20% 20% 20%
+good 20% 20% 20% 20% 20% 20% 20%
+fair 20% 20% 20% 20% 20% 20% 20%
+poor 20% 20% 20% 20% 20% 20% 20%
+very poor 20% 20% 20% 20% 20% 20% 20%
+West Central
+Winter Wheat Fall Rye Spring Wheat Durum Oats Barley Flax Canola
+excellent 20% 20% 20% 20% 20% 20% 20% 20%
+good 20% 20% 20% 20% 20% 20% 20% 20%
+fair 20% 20% 20% 20% 20% 20% 20% 20%
+poor 20% 20% 20% 20% 20% 20% 20% 20%
+very poor 20% 20% 20% 20% 20% 20% 20% 20%
+Triticale Mustard Soybean Lentil Field Pea Canaryseed Chickpea
+excellent 20% 20% 20% 20% 20% 20% 20%
+good 20% 20% 20% 20% 20% 20% 20%
+fair 20% 20% 20% 20% 20% 20% 20%
+poor 20% 20% 20% 20% 20% 20% 20%
+very poor 20% 20% 20% 20% 20% 20% 20%
+North East
+Winter Wheat Fall Rye Spring Wheat Durum Oats Barley Flax Canola
+excellent 20% 20% 20% 20% 20% 20% 20% 20%
+good 20% 20% 20% 20% 20% 20% 20% 20%
+fair 20% 20% 20% 20% 20% 20% 20% 20%
+poor 20% 20% 20% 20% 20% 20% 20% 20%
+very poor 20% 20% 20% 20% 20% 20% 20% 20%
+Triticale Mustard Soybean Lentil Field Pea Canaryseed Chickpea
+excellent 20% 20% 20% 20% 20% 20% 20%
+good 20% 20% 20% 20% 20% 20% 20%
+fair 20% 20% 20% 20% 20% 20% 20%
+poor 20% 20% 20% 20% 20% 20% 20%
+very poor 20% 20% 20% 20% 20% 20% 20%
+North West
+Winter Wheat Fall Rye Spring Wheat Durum Oats Barley Flax Canola
+excellent 20% 20% 20% 20% 20% 20% 20% 20%
+good 20% 20% 20% 20% 20% 20% 20% 20%
+fair 20% 20% 20% 20% 20% 20% 20% 20%
+poor 20% 20% 20% 20% 20% 20% 20% 20%
+very poor 20% 20% 20% 20% 20% 20% 20% 20%
+Triticale Mustard Soybean Lentil Field Pea Canaryseed Chickpea
+excellent 20% 20% 20% 20% 20% 20% 20%
+good 20% 20% 20% 20% 20% 20% 20%
+fair 20% 20% 20% 20% 20% 20% 20%
+poor 20% 20% 20% 20% 20% 20% 20%
+very poor 20% 20% 20% 20% 20% 20% 20%
