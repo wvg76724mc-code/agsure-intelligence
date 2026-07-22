@@ -27,6 +27,9 @@ from agsure.unified_overview import (
     UNAVAILABLE,
     build_overview,
 )
+from agsure.weather.artifact import read_artifact as read_weather
+from agsure.weather.common import GDD_FORMULA
+from agsure.weather.config import STATIONS_BY_CLIMATE_ID
 
 
 ROOT = Path(__file__).parents[2]
@@ -39,6 +42,7 @@ STATCAN_STOCKS_PATH = PROCESSED_DIR / "statcan_crop_stocks.csv"
 STATCAN_SUPPLY_DISPOSITION_PATH = PROCESSED_DIR / "statcan_supply_disposition.csv"
 STATCAN_STOCKS_TO_USE_PATH = PROCESSED_DIR / "statcan_stocks_to_use.csv"
 CROP_CONDITIONS_PATH = PROCESSED_DIR / "crop_conditions.csv"
+WEATHER_PATH = PROCESSED_DIR / "weather.csv"
 METRIC_LABELS = {
     "seeded-area": "Seeded area",
     "harvested-area": "Harvested area",
@@ -972,6 +976,204 @@ def show_compact_regional_conditions(commodity: str) -> None:
     st.warning("Regional systems and condition definitions differ by province.")
 
 
+WEATHER_LABELS = {
+    "001": "Maximum temperature",
+    "002": "Minimum temperature",
+    "003": "Mean temperature",
+    "012": "Total precipitation",
+    "agsure:daily-gdd-v1": "Daily GDD (base 5°C)",
+}
+
+
+def _weather_rows() -> list[dict[str, str]] | None:
+    try:
+        return read_weather(WEATHER_PATH)
+    except (FileNotFoundError, ValueError) as exc:
+        st.warning(str(exc))
+        return None
+
+
+def _weather_value(row: dict[str, str]) -> str:
+    if not row["normalized_value"]:
+        return "Not available"
+    value = Decimal(row["normalized_value"])
+    if row["normalized_unit"] == "degrees Celsius":
+        return f"{value:,.1f}°C"
+    if row["normalized_unit"] == "millimetres":
+        return f"{value:,.1f} mm"
+    return f"{value:,.2f} degree-days"
+
+
+def _show_weather_day(day_rows: list[dict[str, str]]) -> None:
+    by_element = {row["source_element_identifier"]: row for row in day_rows}
+    for offset in range(0, len(WEATHER_LABELS), 5):
+        columns = st.columns(5)
+        for column, element in zip(columns, tuple(WEATHER_LABELS)[offset : offset + 5]):
+            with column:
+                row = by_element[element]
+                st.metric(WEATHER_LABELS[element], _weather_value(row))
+                origin = (
+                    "Calculated by AgSure"
+                    if row["observation_origin"] == "calculated"
+                    else "Source-published by ECCC"
+                )
+                flag = row["source_quality_flag"] or "none"
+                st.caption(
+                    f"{origin} · Status: {row['observation_status']} · Flag: {flag}"
+                )
+
+
+def _show_weather_provenance(row: dict[str, str]) -> None:
+    st.caption(
+        f"Official station: {row['official_station_name']} · Climate ID: "
+        f"{row['station_identifier']} · {row['latitude']}, {row['longitude']} · "
+        f"Elevation: {row['elevation']} {row['elevation_unit']} · "
+        f"Retrieved: {row['retrieved_at']} · Release date: unavailable from source"
+    )
+    st.markdown(f"[Open official ECCC API query]({row['source_url']})")
+
+
+def _weather_station_selector(
+    rows: list[dict[str, str]], *, key: str, label: str = "Official weather station"
+) -> str | None:
+    available = tuple(
+        station.climate_id
+        for station in STATIONS_BY_CLIMATE_ID.values()
+        if any(row["station_identifier"] == station.climate_id for row in rows)
+    )
+    return st.selectbox(
+        label, options=available, index=None, placeholder="Select a station",
+        format_func=lambda identifier: (
+            f"{STATIONS_BY_CLIMATE_ID[identifier].name} · Climate ID {identifier}"
+        ),
+        key=key,
+    )
+
+
+def show_weather() -> None:
+    st.info(
+        "Official ECCC historical daily observations for individual stations. "
+        "No station is a Southern Alberta regional estimate, and no values are "
+        "interpolated, averaged, forecast, or used in the supply-pressure score."
+    )
+    rows = _weather_rows()
+    if rows is None:
+        return
+    station_id = _weather_station_selector(rows, key="weather_station")
+    if station_id is None:
+        st.info("Select an official station before choosing a date or period.")
+        return
+    station_rows = [row for row in rows if row["station_identifier"] == station_id]
+    dates = tuple(dict.fromkeys(row["reference_date"] for row in station_rows))
+    start = st.selectbox(
+        "Period start", options=dates, index=None, placeholder="Select a start date",
+        key=f"weather_start_{station_id}",
+    )
+    if start is None:
+        st.info("Select a period start date to show station observations.")
+        return
+    end_options = tuple(value for value in dates if value >= start)
+    end = st.selectbox(
+        "Period end", options=end_options, index=None, placeholder="Select an end date",
+        key=f"weather_end_{station_id}_{start}",
+    )
+    if end is None:
+        st.info("Select a period end date; use the same date for a one-day view.")
+        return
+    selected = [row for row in station_rows if start <= row["reference_date"] <= end]
+    end_rows = [row for row in selected if row["reference_date"] == end]
+    st.subheader(f"{STATIONS_BY_CLIMATE_ID[station_id].name} · {start} to {end}")
+    _show_weather_day(end_rows)
+    _show_weather_provenance(end_rows[0])
+
+    chart_source = [
+        row for row in selected
+        if row["source_element_identifier"] in WEATHER_LABELS
+    ]
+    valid = [row for row in chart_source if row["normalized_value"]]
+    valid_dates = {row["reference_date"] for row in valid}
+    if len(valid_dates) < 2:
+        st.caption("A line chart is not shown because fewer than two dates have values.")
+    else:
+        chart = pd.DataFrame({
+            "reference_date": [row["reference_date"] for row in chart_source],
+            "value": [
+                None if not row["normalized_value"] else float(row["normalized_value"])
+                for row in chart_source
+            ],
+            "element": [WEATHER_LABELS[row["source_element_identifier"]] for row in chart_source],
+            "status": [row["observation_status"] for row in chart_source],
+        })
+        figure = px.line(
+            chart, x="reference_date", y="value", color="element", markers=True,
+            hover_data=("status",),
+            labels={"reference_date": "Reference date", "value": "Published or calculated value"},
+        )
+        figure.update_traces(connectgaps=False)
+        st.plotly_chart(figure, width="stretch")
+
+    completeness = []
+    for element, label in WEATHER_LABELS.items():
+        element_rows = [row for row in selected if row["source_element_identifier"] == element]
+        available = sum(bool(row["normalized_value"]) for row in element_rows)
+        completeness.append({
+            "element": label, "available days": available,
+            "unavailable days": len(element_rows) - available,
+            "selected days": len(element_rows),
+        })
+    st.subheader("Selected-period completeness")
+    st.dataframe(pd.DataFrame(completeness), hide_index=True, width="stretch")
+    exceptions = [row for row in selected if not row["normalized_value"]]
+    if exceptions:
+        st.subheader("Explicit unavailable observations")
+        st.dataframe(pd.DataFrame(exceptions)[[
+            "reference_date", "source_element_label", "observation_status",
+            "raw_source_value", "source_quality_flag",
+        ]], hide_index=True, width="stretch")
+    with st.expander("Selected end-date provenance and GDD methodology"):
+        st.code(f"daily GDD = {GDD_FORMULA}\nbase temperature = 5°C (v0.8 convention)")
+        st.caption(
+            "GDD requires unflagged source-published maximum and minimum temperatures "
+            "from this exact station and date. It is not an official ECCC observation "
+            "and 5°C is not asserted to suit every crop."
+        )
+        st.dataframe(pd.DataFrame(end_rows), hide_index=True, width="stretch")
+
+
+def show_compact_weather() -> None:
+    st.subheader("Official station weather")
+    st.caption(
+        "Separate station-specific ECCC observations; not a Southern Alberta average "
+        "and not an input to the synthetic 72.1/100 score."
+    )
+    rows = _weather_rows()
+    if rows is None:
+        return
+    station_id = _weather_station_selector(
+        rows, key="unified_weather_station", label="Overview weather station"
+    )
+    if station_id is None:
+        st.info("Select an official weather station before showing values.")
+        return
+    dates = tuple(dict.fromkeys(
+        row["reference_date"] for row in rows if row["station_identifier"] == station_id
+    ))
+    selected_date = st.selectbox(
+        "Overview weather reference date", options=dates, index=None,
+        placeholder="Select a reference date", key=f"unified_weather_date_{station_id}",
+    )
+    if selected_date is None:
+        st.info("Select a weather reference date to show station values.")
+        return
+    day_rows = [
+        row for row in rows
+        if row["station_identifier"] == station_id and row["reference_date"] == selected_date
+    ]
+    _show_weather_day(day_rows)
+    _show_weather_provenance(day_rows[0])
+    st.warning("These values describe only the selected station and date.")
+
+
 def show_unified_overview() -> None:
     st.info(
         "Unified official commodity overview. Official published observations, "
@@ -1097,6 +1299,8 @@ def show_unified_overview() -> None:
             _show_unavailable(series)
         st.divider()
         show_compact_regional_conditions(commodity)
+        st.divider()
+        show_compact_weather()
 
     with tabs[1]:
         metric = st.selectbox(
@@ -1179,6 +1383,7 @@ source = st.selectbox(
         "statcan-supply-disposition",
         "statcan-stocks-to-use",
         "crop-conditions",
+        "weather",
     ),
     format_func=lambda value: {
         "unified": "Unified commodity overview",
@@ -1190,6 +1395,7 @@ source = st.selectbox(
         ),
         "statcan-stocks-to-use": "Official stocks-to-use",
         "crop-conditions": "Official regional crop conditions",
+        "weather": "Official Southern Alberta station weather",
     }[value],
 )
 
@@ -1205,8 +1411,10 @@ elif source == "statcan-supply-disposition":
     show_statcan_supply_disposition()
 elif source == "statcan-stocks-to-use":
     show_statcan_stocks_to_use()
-else:
+elif source == "crop-conditions":
     show_crop_conditions()
+else:
+    show_weather()
 
 with st.expander("Methodology and limitations"):
     st.markdown((ROOT / "docs" / "methodology.md").read_text(encoding="utf-8"))

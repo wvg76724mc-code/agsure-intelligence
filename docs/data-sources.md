@@ -3,6 +3,107 @@
 Only official, licensed, and documented sources may feed production indicators.
 This registry distinguishes implemented and planned connectors.
 
+## ECCC historical daily station weather in v0.8
+
+Status: **implemented for a bounded 2024-01-01 through 2025-12-31 retrieval**
+
+Authoritative route and documentation:
+
+- OGC API collection: `https://api.weather.gc.ca/collections/climate-daily`
+- Station inventory collection: `https://api.weather.gc.ca/collections/climate-stations`
+- Daily schema: `https://api.weather.gc.ca/collections/climate-daily/schema?f=json`
+- Station schema: `https://api.weather.gc.ca/collections/climate-stations/schema?f=json`
+- Official advanced-access guidance:
+  `https://www.canada.ca/en/environment-climate-change/services/climate-change/canadian-centre-climate-services/display-download/advanced-tools.html`
+- Daily-data overview and climatological-day limitations:
+  `https://www.canada.ca/en/environment-climate-change/services/climate-change/canadian-centre-climate-services/display-download/technical-documentation-daily-data.html`
+- Digital Archive field, unit, element and flag definitions:
+  `https://climate.weather.gc.ca/doc/Technical_Documentation.pdf`
+- Data Server End-use Licence, version 2.1:
+  `https://eccc-msc.github.io/open-data/licence/readme_en/`
+
+GeoMet OGC API Features is the supported automated route. It returns GeoJSON
+or CSV and exposes distinct `climate-stations` and `climate-daily` collections.
+AgSure uses GeoJSON so station point geometry remains part of source identity.
+The public historical-data web download remains an official manual route but
+is not the v0.8 connector. Gridded, homogenized, virtual/threaded, forecast,
+and third-party products are excluded.
+
+The station collection exposes Climate ID, internal `STN_ID`, WMO and
+Transport Canada identifiers, name, coordinates, elevation, province,
+operator, type, and first/last daily dates. Climate ID is the primary identity:
+ECCC defines it as a permanent unique identifier and documents that discontinued
+and successor sites are not automatically the same record. AgSure performs no
+station threading or successor splicing.
+
+### Approved initial stations
+
+Official metadata and required-element coverage were audited live on
+2026-07-21. Coverage counts below are for the 731 requested dates in 2024–2025;
+they are evidence for selection, not observations committed to Git.
+
+| Official station | Climate ID / STN_ID | WMO / TC | Coordinates | Elevation | Daily period | Available max / min / mean / precipitation | Rationale |
+|---|---|---|---|---:|---|---:|---|
+| CLARESHOLM | `3031640` / `2224` | `71234` / `WDK` | 50.0036306, -113.6386361 | 1009.00 m | 1951-08-01–active | 683 / 683 / 683 / 683 | Foothills-transition context and long record |
+| LETHBRIDGE | `3033875` / `49268` | `71267` / `YQL` | 49.6302778, -112.7988889 | 929.00 m | 2011-01-13–active | 723 / 723 / 723 / 685 | Major irrigated-agriculture centre; current identity only |
+| BROOKS | `3030QLP` / `2180` | `71457` / `WBO` | 50.5552972, -111.8488972 | 747.00 m | 1988-12-01–active | 714 / 714 / 714 / 713 | Eastern irrigation-district context and continuity |
+| BOW ISLAND | `3030768` / `10915` | `71231` / `WXL` | 49.7341861, -111.4502778 | 816.60 m | 1993-06-04–active | 719 / 719 / 719 / 719 | Southeastern irrigated-production context and completeness |
+| MEDICINE HAT RCS | `3034485` / `30347` | `71026` / `XMW` | 50.0251111, -110.7172500 | 715.00 m | 2000-08-01–active | 700 / 698 / 698 / 711 | Eastern dryland context and active record |
+
+Year-specific available counts (`maximum / minimum / mean / precipitation`)
+make the audited gaps explicit:
+
+| Station | 2024 (366 days) | 2025 (365 days) |
+|---|---:|---:|
+| CLARESHOLM | 362 / 362 / 362 / 362 | 321 / 321 / 321 / 321 |
+| LETHBRIDGE | 365 / 365 / 365 / 327 | 358 / 358 / 358 / 358 |
+| BROOKS | 360 / 360 / 360 / 360 | 354 / 354 / 354 / 353 |
+| BOW ISLAND | 361 / 361 / 361 / 361 | 358 / 358 / 358 / 358 |
+| MEDICINE HAT RCS | 352 / 352 / 352 / 352 | 348 / 346 / 346 / 359 |
+
+The stations are point observations selected for agricultural relevance,
+active status, geographic spread, official metadata, and recent availability.
+They do not define a Southern Alberta boundary and are not representative
+stations. Each gap remains explicit.
+
+Audited exclusions include `LETHBRIDGE CDA` (`3033890`): valuable long research
+record but only 472 of 726 returned 2024–2025 dates had total precipitation;
+and `MILK RIVER` (`3044533`): 121 of 731 dates carried missing flags for all four
+required fields. Familiar historical Lethbridge, Brooks, Medicine Hat, and
+other successor names were not spliced into the selected identities.
+
+### Fields, flags, release and revision limits
+
+The API fields are `MAX_TEMPERATURE`, `MIN_TEMPERATURE`,
+`MEAN_TEMPERATURE`, and `TOTAL_PRECIPITATION`. Official archive elements are
+001, 002, 003, and 012; units are 0.1°C and 0.1 mm in the archive documentation,
+while the API returns decimal values in °C and mm. Blank flag means valid; `E`
+means estimated; `M` means missing; minimum-temperature `N`/`Y` mean the value
+is missing but known above/below freezing. Precipitation additionally permits
+`A`, `C`, `F`, `L`, and `T` with their documented accumulated, uncertain,
+estimated, or trace meanings. Any other flag fails closed.
+
+The GeoMet schemas expose no per-observation publication/release timestamp and
+no revision timestamp or marker. AgSure stores blank `release_date` with
+`unavailable_from_source`, the UTC retrieval time, raw response SHA-256, and
+`revision_status=unavailable_from_source`. Historical data may change in a
+later retrieval; each immutable generation is a retrieval vintage, not a
+point-in-time revision archive.
+
+One request is made per configured station for metadata and one for daily data.
+The daily request uses `limit=1000`; the official UI warns that higher limits
+are not recommended. The approved maximum range is 731 days, so a valid response
+fits in one page. `numberMatched`, `numberReturned`, and feature count must agree;
+pagination or truncation fails closed. The exact station/date/element range is
+bounded in code. Content type, exact property sets, identity, dates, coordinates,
+units, flags, duplicates, and response completeness are validated before the
+weather-only CURRENT pointer can change.
+
+The advertised daily JSON schema lists `SOURCE` as a property but does not mark
+it required; the live GeoJSON response omits it. The parser accepts exactly the
+audited live property set, with only this documented optional property allowed.
+Any other added or removed property fails closed.
+
 ## Official Prairie crop reports in v0.7
 
 Live validation was performed on 2026-07-19 against the canonical report pages

@@ -1,7 +1,8 @@
 # AgSure Intelligence
 
 AgSure Intelligence is a transparent, source-traceable agricultural market
-intelligence project. Version 0.7 tracks five Prairie crops:
+intelligence project. Version 0.8 tracks five Prairie crops and adds a separate
+official ECCC daily station-weather vertical:
 
 - Barley
 - Canola
@@ -22,6 +23,20 @@ calculations are displayed for monitoring only; they are not forecasts, trading
 signals, recommendations, or validated predictors.
 
 ## What works now
+
+- Ingests official ECCC GeoMet daily maximum, minimum, mean, and total
+  precipitation for five exact Southern Alberta Climate IDs over the bounded
+  completed 2024–2025 period. Every value remains station-specific; no regional
+  observation, average, interpolation, successor splice, or town-level claim is
+  created.
+- Calculates separate daily growing degree days with Decimal arithmetic from
+  same-station, same-date, unflagged official maximum and minimum temperatures
+  using the documented v0.8 base-5°C convention. Missing or flagged inputs make
+  GDD unavailable; cumulative GDD is deferred.
+- Publishes weather source responses, retrieval sidecars, processed rows, and
+  manifests as weather-only immutable generations behind `weather.CURRENT`.
+  The dedicated dashboard requires station and period selection; the compact
+  overview requires station and date selection.
 
 - Ingests embedded PDF text from representative 2026 Alberta and Saskatchewan
   official crop reports into a separate normalized long-form artifact with
@@ -117,6 +132,20 @@ python -m pip install -e ".[crop-conditions]"
 PYTHONPATH=src python -m agsure.crop_conditions.ingest
 ```
 
+For official ECCC daily station weather:
+
+```bash
+PYTHONPATH=src python -m agsure.weather.ingest
+# Intentionally retrieve a fresh official vintage:
+PYTHONPATH=src python -m agsure.weather.ingest --force
+```
+
+The default contract is exactly 2024-01-01 through 2025-12-31 for the five
+approved Climate IDs. Optional `--start-date` and `--end-date` values must span
+no more than 731 completed days and cannot predate any configured station.
+Raw GeoJSON, retrieval metadata, immutable generations, and processed artifacts
+remain Git-ignored. Offline tests use clearly synthetic source-shaped fixtures.
+
 Raw PDFs, retrieval sidecars, processed CSVs, and manifests are written into an
 immutable directory under `data/raw/crop_conditions/generations/`. The logical
 processed path remains `data/processed/crop_conditions.csv`; readers resolve
@@ -186,9 +215,11 @@ Regional crop-report observations remain separate from annual Statistics
 Canada production and Canada-level supply/disposition. Province region systems
 are not interchangeable, `Field Pea` is not asserted to be definitionally
 identical to Statistics Canada's `Peas, dry`, and weekly conditions are not
-claimed to predict yield, production, prices, bids, or stocks-to-use. Weather,
-bids, prices, price forecasts, and a real-data supply-pressure score
-remain out of scope.
+claimed to predict yield, production, prices, bids, or stocks-to-use. Weather
+forecasts, regional weather estimates, bids, prices, price forecasts, and a
+real-data supply-pressure score remain out of scope. Official station weather
+and calculated daily GDD are display-only and never enter the existing
+synthetic barley score.
 
 The v0.7 overview retains the greatest-source-period selection for each exact
 series identity. If that newest source row is unpublished or cannot be

@@ -1,5 +1,49 @@
 # Data dictionary
 
+## Official ECCC daily station weather
+
+`data/processed/weather.csv` is a long-form station artifact. Its logical path
+is resolved through the separate `weather.CURRENT` pointer. Each configured
+station and requested reference date has four source-published rows and one
+calculated GDD row, including explicit unavailable rows when the API omits a
+date or publishes a missing flag.
+
+| Field | Meaning |
+|---|---|
+| `schema_version`, `parser_version` | Exact processed contract and adapter versions |
+| `publisher`, `dataset_title` | `Environment and Climate Change Canada` and `Climate - Daily Observations` |
+| `source_url`, `technical_documentation_url` | Exact bounded OGC API query and official field/flag documentation |
+| `retrieved_at` | UTC retrieval timestamp for the raw station response |
+| `release_date`, `release_date_status` | Blank plus `unavailable_from_source`; the API exposes no observation release date |
+| `reference_date` | Exact source `LOCAL_DATE` date in ISO format |
+| `station_identifier_type`, `station_identifier` | `ECCC Climate ID` and the permanent Climate ID |
+| `source_station_id`, `wmo_identifier`, `tc_identifier` | Additional official identifiers; blanks remain blank |
+| `official_station_name` | Exact `STATION_NAME`, never a nearest-town claim |
+| `latitude`, `longitude` | Official GeoJSON point coordinates in decimal degrees |
+| `elevation`, `elevation_unit` | Official station elevation and `metres` |
+| `province`, `geographic_scope` | `Alberta` and `individual weather station` |
+| `station_operator`, `station_type` | Exact current official metadata |
+| `observation_origin` | `source_published` or `calculated` |
+| `source_element_identifier` | Archive element `001`, `002`, `003`, `012`, or `agsure:daily-gdd-v1` |
+| `source_element_label` | Exact API field: `MAX_TEMPERATURE`, `MIN_TEMPERATURE`, `MEAN_TEMPERATURE`, `TOTAL_PRECIPITATION`, or calculated GDD label |
+| `raw_source_value`, `raw_source_unit` | Unchanged API numeric text and documented source unit (`°C` or `mm`) |
+| `normalized_value`, `normalized_unit` | Separate metric value; blank for missing, uncertain-zero, trace, or unavailable data |
+| `observation_status` | `official`, `estimated`, documented precipitation/temperature flag status, explicit absence, `calculated`, or unavailable GDD |
+| `source_quality_flag` | Exact ECCC element flag, including `M` and `T` |
+| `source_revision_or_estimate_flag` | `E` or `F` only; the API exposes no separate revision field |
+| `revision_status` | `unavailable_from_source`; no revision state is invented |
+| `transformation_identifier`, `transformation_description` | Identity normalization or exact daily-GDD method |
+| `gdd_base_temperature_c`, `methodology_version` | `5` and `0.8.0` only on derived GDD rows |
+| `input_max_key`, `input_min_key` | Stable full keys of the exact maximum/minimum input rows |
+| `generation_identifier` | Immutable publication directory identity shared by every row |
+
+The stable key is station identifier type, Climate ID, reference date,
+observation origin, and source element identifier. Source and calculated rows
+cannot collide. A trace precipitation row retains raw source value `0` and flag
+`T`, while `normalized_value` is blank so trace is never presented as zero
+precipitation. An API-omitted station date is materialized only as explicit
+unavailability; no weather value is invented.
+
 ## Official regional crop conditions
 
 `data/processed/crop_conditions.csv` is a separate normalized long-form

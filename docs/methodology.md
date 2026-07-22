@@ -281,3 +281,56 @@ pressure. It does not directly predict price or basis.
 
 Before commercial use, weights must be backtested against out-of-sample
 production and basis outcomes with documented error metrics.
+
+## Official station weather and daily GDD (v0.8)
+
+Official daily maximum, minimum, mean, and total precipitation remain separate
+source-published observations for one exact ECCC Climate ID and reference date.
+Mean temperature is retained only when ECCC publishes it; AgSure never fills it
+from maximum and minimum. Missing dates, values, and flags are not repaired,
+interpolated, averaged, or converted to regional observations.
+
+Daily growing degree days are a separate AgSure calculation:
+
+```text
+daily GDD = max(((daily maximum temperature + daily minimum temperature) / 2)
+                - 5°C,
+                0)
+```
+
+Five degrees Celsius is the documented v0.8 project convention, not a claim
+that the base is correct for every crop. Calculations use `Decimal`, require
+exactly one unflagged official maximum and minimum in degrees Celsius from the
+same Climate ID and date, and never substitute the published daily mean. A
+missing, estimated, trace, incompatible, duplicate, mixed-station, or mixed-date
+input makes GDD unavailable. The derived row stores the base, formula version,
+and stable input keys. Cumulative GDD is deferred because incomplete-period
+semantics require a separate season contract.
+
+The official station-weather artifact and GDD never enter `CropYearObservation`
+or the synthetic barley supply-pressure calculation. The synthetic fixture's
+`precip_pct_normal` and `gdd_pct_normal` fields remain demonstration inputs and
+are not populated or changed by v0.8. The established score remains 72.1/100.
+
+Weather uses the same durability standard as crop conditions but a distinct
+namespace. Every source response and retrieval sidecar is staged and hashed;
+the processed CSV and manifest are hashed; the complete generation is flushed
+and fsynced where supported; and `weather.CURRENT` changes atomically only after
+validation. Readers resolve CURRENT once and verify every manifested file,
+schema version, row count, hash, generation ID, key, station/date element set,
+status, flag, unit, provenance field, and GDD input identity. Prior generations
+remain intact after failure.
+
+### Weather limitations
+
+- The five stations are point observations, not a regional sample design or a
+  Southern Alberta estimate.
+- The approved artifact covers the two completed calendar years 2024–2025;
+  longer history, additional stations, normals, and cumulative GDD are deferred.
+- The API has no observation release date or revision marker. Retrieval vintage
+  is reproducible, but first-publication history is unavailable.
+- Climatological-day endpoints vary by station type and historical period; the
+  displayed `LOCAL_DATE` is retained without converting it to a civil-day claim.
+- Trace and uncertain-zero precipitation have no normalized numeric value.
+- GDD is descriptive and is not a forecast, yield model, weather score,
+  recommendation, or market signal.

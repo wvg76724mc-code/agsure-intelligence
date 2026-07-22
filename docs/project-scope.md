@@ -1,10 +1,10 @@
-# AgSure Intelligence v0.7 scope
+# AgSure Intelligence v0.8 scope
 
 ## Decision question
 
-What traceable weekly agronomic context can the official Alberta,
-Saskatchewan, and Manitoba crop-report programs support without weakening the
-identities and guardrails established in v0.2–v0.6?
+What station-specific historical weather context can official ECCC daily
+observations support without weakening the identities and guardrails
+established in v0.2–v0.7?
 
 ## Included
 
@@ -47,8 +47,16 @@ identities and guardrails established in v0.2–v0.6?
   requires province and exact official-region selection.
 - One representative July 2026 report per province; history completeness is
   explicitly narrow and tested as such.
+- A separate official ECCC daily-weather vertical for the exact configured
+  Claresholm, Lethbridge, Brooks, Bow Island, and Medicine Hat RCS Climate IDs.
+- Official daily maximum, minimum, mean when published, and total precipitation
+  for the bounded 2024–2025 period, with explicit source gaps and flags.
+- Separate Decimal-safe daily GDD using the documented 5°C v0.8 convention,
+  exact maximum/minimum input keys, and no cumulative series.
+- Weather-only immutable generations and `weather.CURRENT`, a dedicated
+  station/date-gated dashboard, and a compact station/date-gated overview.
 
-## Excluded from v0.7
+## Excluded from v0.8
 
 - Cash-bid recommendations.
 - Futures or automated trading.
@@ -72,13 +80,17 @@ identities and guardrails established in v0.2–v0.6?
   visual redesign, or AI-generated narrative.
 - New official-source downloads solely for overview rendering, ingestion-module
   consolidation, deletion of specialist views, or broad dashboard restyling.
-- Weather-station ingestion, crop weather tables, satellite imagery, NDVI,
-  remote sensing, soil-moisture models, yield or price forecasting, cash bids,
+- Crop weather tables, satellite imagery, NDVI, remote sensing, soil-moisture
+  models, yield or price forecasting, cash bids,
   town-level estimates, producer observations, automated email reports, and
   AI-generated crop summaries.
 - Cross-province category comparisons, Prairie averages or condition scores,
   regional-to-provincial aggregation, and any change to the synthetic
   72.1/100 result.
+- Forecasts, weather recommendations, drought/moisture/weather scores, regional
+  weather estimates, interpolation, station averaging, successor splicing,
+  cumulative GDD, weather-to-price models, and weather inputs to the synthetic
+  supply-pressure score.
 
 ## Completion criteria
 

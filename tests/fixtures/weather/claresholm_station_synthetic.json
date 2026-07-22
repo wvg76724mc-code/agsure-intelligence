@@ -1,0 +1,43 @@
+{
+  "type": "FeatureCollection",
+  "numberMatched": 1,
+  "numberReturned": 1,
+  "features": [{
+    "type": "Feature",
+    "geometry": {"type": "Point", "coordinates": [-113.63863611111111, 50.00363055555555]},
+    "properties": {
+      "STN_ID": 2224,
+      "STATION_NAME": "CLARESHOLM",
+      "PROV_STATE_TERR_CODE": "AB",
+      "ENG_PROV_NAME": "ALBERTA",
+      "FRE_PROV_NAME": "ALBERTA",
+      "COUNTRY": "CAN",
+      "LATITUDE": 500013070,
+      "LONGITUDE": -1133819090,
+      "TIMEZONE": "MST",
+      "ELEVATION": "1009.00",
+      "CLIMATE_IDENTIFIER": "3031640",
+      "TC_IDENTIFIER": "WDK",
+      "WMO_IDENTIFIER": "71234",
+      "STATION_TYPE": "Climate-Auto",
+      "NORMAL_CODE": "G",
+      "PUBLICATION_CODE": 1,
+      "DISPLAY_CODE": 8,
+      "ENG_STN_OPERATOR_ACRONYM": "ECCC - MSC",
+      "FRE_STN_OPERATOR_ACRONYM": "ECCC - SMC",
+      "ENG_STN_OPERATOR_NAME": "Environment and Climate Change Canada - Meteorological Service of Canada",
+      "FRE_STN_OPERATOR_NAME": "Environnement et Changement climatique Canada - Service météorologique du Canada",
+      "FIRST_DATE": "1951-01-01 00:00:00",
+      "LAST_DATE": "2026-07-19 12:30:09",
+      "HLY_FIRST_DATE": "1994-02-01 00:00:00",
+      "HLY_LAST_DATE": "2026-07-19 12:30:09",
+      "DLY_FIRST_DATE": "1951-08-01 00:00:00",
+      "DLY_LAST_DATE": "2026-07-19 00:00:00",
+      "MLY_FIRST_DATE": "1951-01-01 00:00:00",
+      "MLY_LAST_DATE": "2007-11-01 00:00:00",
+      "HAS_MONTHLY_SUMMARY": "Y",
+      "HAS_NORMALS_DATA": "N",
+      "HAS_HOURLY_DATA": "Y"
+    }
+  }]
+}
