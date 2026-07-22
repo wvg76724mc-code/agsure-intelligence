@@ -25,8 +25,9 @@ signals, recommendations, or validated predictors.
 ## What works now
 
 - Ingests official ECCC GeoMet daily maximum, minimum, mean, and total
-  precipitation for five exact Southern Alberta Climate IDs over the bounded
-  completed 2024–2025 period. Every value remains station-specific; no regional
+  precipitation for five exact Southern Alberta Climate IDs from 2024-01-01
+  through a runtime-selected completed day, including current-year-to-date
+  coverage. Every value remains station-specific; no regional
   observation, average, interpolation, successor splice, or town-level claim is
   created.
 - Calculates separate daily growing degree days with Decimal arithmetic from
@@ -135,16 +136,50 @@ PYTHONPATH=src python -m agsure.crop_conditions.ingest
 For official ECCC daily station weather:
 
 ```bash
-PYTHONPATH=src python -m agsure.weather.ingest
-# Intentionally retrieve a fresh official vintage:
-PYTHONPATH=src python -m agsure.weather.ingest --force
+# Refresh through the latest eligible completed day:
+PYTHONPATH=src python -m agsure.weather.ingest --to-latest
+# The installed console command is equivalent:
+agsure-weather --to-latest
+# Deterministic replay/testing (ends at 2026-07-20):
+agsure-weather --to-latest --as-of-date 2026-07-21
+# Explicit bounded historical retrieval:
+agsure-weather --start-date 2025-06-01 --end-date 2025-06-30 --force
 ```
 
-The default contract is exactly 2024-01-01 through 2025-12-31 for the five
-approved Climate IDs. Optional `--start-date` and `--end-date` values must span
-no more than 731 completed days and cannot predate any configured station.
+`--to-latest` starts at 2024-01-01 unless `--start-date` is supplied. Its end is
+the calendar day immediately before the runtime as-of date in the explicit
+`America/Edmonton` timezone. It never requests the current local date, even if
+ECCC has already created a blank row. An explicit retrieval requires
+`--end-date`; `--as-of-date` requires `--to-latest`; and `--to-latest` cannot be
+combined with `--end-date`. Longer ranges are split into independently retained
+requests of at most 731 days. Missing source dates remain explicit unavailable
+rows through the requested coverage end; station publication lag never silently
+shortens the artifact.
+
+Every `--to-latest` run fetches a fresh official vintage. A successful rerun
+publishes a new immutable generation even when every source hash is unchanged.
+Later ECCC changes therefore become a separate revision vintage, while the old
+generation remains readable. Any download, schema, validation, manifest, hash,
+or pre-publication integrity failure leaves `weather.CURRENT` unchanged.
 Raw GeoJSON, retrieval metadata, immutable generations, and processed artifacts
 remain Git-ignored. Offline tests use clearly synthetic source-shaped fixtures.
+
+There is no hosted scheduler in this repository. A local daily cron entry can
+run the installed command after local midnight (the command's date rule remains
+timezone-independent of the host):
+
+```cron
+17 7 * * * cd /absolute/path/to/agsure-intelligence && .venv/bin/agsure-weather --to-latest
+```
+
+For a weekly refresh, replace the schedule with `17 7 * * 1`. A hosted job must
+retain both `data/raw/weather/generations/` and
+`data/processed/weather.CURRENT` at stable relative paths between runs. The
+generation directory contains the raw responses, retrieval sidecars, processed
+artifact, manifests, URLs, timestamps, and hashes; ephemeral storage would
+destroy the immutable-vintage contract. No credentials are required or stored
+by this connector. Because unchanged reruns are retained, the operator must
+monitor capacity and apply an explicit, audited retention policy if needed.
 
 Raw PDFs, retrieval sidecars, processed CSVs, and manifests are written into an
 immutable directory under `data/raw/crop_conditions/generations/`. The logical

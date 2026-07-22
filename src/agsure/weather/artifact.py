@@ -7,6 +7,7 @@ import json
 import os
 import re
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 
 from agsure.crop_conditions.common import atomic_write_text, sha256_file
@@ -27,6 +28,30 @@ class GenerationPaths:
     directory: Path
     artifact: Path
     artifact_manifest: Path
+
+
+def coverage_summary(rows: list[dict[str, str]]) -> str:
+    coverage_start = min(row["reference_date"] for row in rows)
+    coverage_end = max(row["reference_date"] for row in rows)
+    retrievals = sorted({row["retrieved_at"] for row in rows})
+    end = date.fromisoformat(coverage_end)
+    year_status = (
+        "partial year (year-to-date)"
+        if end < date(end.year, 12, 31)
+        else "complete through calendar year end"
+    )
+    retrieval = (
+        retrievals[0]
+        if len(retrievals) == 1
+        else f"{retrievals[0]} to {retrievals[-1]}"
+    )
+    return (
+        f"Artifact source coverage: {coverage_start} through {coverage_end} "
+        f"({end.year} {year_status}). Retrieval vintage: {retrieval}. "
+        "Coverage dates describe requested source dates; retrieval time describes "
+        "when this immutable vintage was fetched. The coverage end does not assert "
+        "that every station or element has an available official value on that date."
+    )
 
 
 def current_pointer_path(output: Path) -> Path:

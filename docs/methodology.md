@@ -321,12 +321,31 @@ schema version, row count, hash, generation ID, key, station/date element set,
 status, flag, unit, provenance field, and GDD input identity. Prior generations
 remain intact after failure.
 
+The update endpoint is computed at runtime in `America/Edmonton`: it is the
+calendar day immediately before the local as-of date. This is a conservative
+completed-day rule, not a claim about when each station finishes publishing.
+The current local day is excluded even if ECCC exposes a blank row. Source lag
+does not truncate the requested period; absent station dates are materialized as
+explicit `unavailable_source_date_absent` rows. A returned date with all four
+selected values and flags null is separately retained as
+`unavailable_source_date_blank`; it is not relabelled as an official missing
+observation. Partially blank unflagged rows fail closed. An injected
+`--as-of-date` makes the boundary deterministic for operations and tests.
+
+Refreshes retrieve every configured station into a new staging generation and
+publish only after raw sidecars, parsed observations, processed manifest,
+generation manifest, hashes, and file-set integrity all pass. Successful
+unchanged reruns still publish a new immutable retrieval vintage. This makes the
+rerun policy simple and auditable and permits later ECCC revisions to appear in
+a new generation without altering the earlier source response or artifact.
+
 ### Weather limitations
 
 - The five stations are point observations, not a regional sample design or a
   Southern Alberta estimate.
-- The approved artifact covers the two completed calendar years 2024–2025;
-  longer history, additional stations, normals, and cumulative GDD are deferred.
+- The approved artifact begins at 2024-01-01 and extends through the latest
+  eligible completed day; earlier history, additional stations, normals, and
+  cumulative GDD are deferred.
 - The API has no observation release date or revision marker. Retrieval vintage
   is reproducible, but first-publication history is unavailable.
 - Climatological-day endpoints vary by station type and historical period; the

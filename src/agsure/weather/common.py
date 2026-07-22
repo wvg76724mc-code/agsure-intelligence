@@ -63,6 +63,9 @@ DAILY_PROPERTY_FIELDS = {
     "TOTAL_SNOW_FLAG",
 }
 DAILY_OPTIONAL_PROPERTY_FIELDS = {"SOURCE"}
+DAILY_AUDITED_OMISSIBLE_FIELD_PAIRS = {
+    frozenset({"MAX_REL_HUMIDITY", "MAX_REL_HUMIDITY_FLAG"}),
+}
 
 OUTPUT_FIELDS = (
     "schema_version", "publisher", "dataset_title", "source_url",
@@ -270,10 +273,19 @@ def parse_daily_response(
         properties = feature["properties"]
         geometry = feature["geometry"]
         property_fields = frozenset(properties) if isinstance(properties, dict) else frozenset()
-        if property_fields not in {
+        accepted_fields = {
             frozenset(DAILY_PROPERTY_FIELDS),
             frozenset(DAILY_PROPERTY_FIELDS | DAILY_OPTIONAL_PROPERTY_FIELDS),
-        }:
+        }
+        for omitted_pair in DAILY_AUDITED_OMISSIBLE_FIELD_PAIRS:
+            accepted_fields.add(frozenset(DAILY_PROPERTY_FIELDS - omitted_pair))
+            accepted_fields.add(
+                frozenset(
+                    (DAILY_PROPERTY_FIELDS - omitted_pair)
+                    | DAILY_OPTIONAL_PROPERTY_FIELDS
+                )
+            )
+        if property_fields not in accepted_fields:
             raise ValueError("Unexpected ECCC daily schema")
         if properties["CLIMATE_IDENTIFIER"] != station.climate_id or str(properties["STN_ID"]) != station.station_id or properties["STATION_NAME"] != station.name or properties["PROVINCE_CODE"] != "AB":
             raise ValueError("Cross-station contamination in ECCC daily response")
@@ -301,11 +313,18 @@ def parse_daily_response(
     current = start
     while current <= end:
         properties = by_date.get(current)
+        source_date_blank = properties is not None and all(
+            properties[label] is None and properties[FLAG_FIELDS[label]] is None
+            for label in SOURCE_ELEMENTS
+        )
         for label, (element_id, raw_unit, normalized_unit) in SOURCE_ELEMENTS.items():
             base = _base_observation(station, current.isoformat(), retrieved_at, source_url, generation)
             if properties is None:
                 raw_value = normalized_value = flag = ""
                 status = "unavailable_source_date_absent"
+            elif source_date_blank:
+                raw_value = normalized_value = flag = ""
+                status = "unavailable_source_date_blank"
             else:
                 value = properties[label]
                 flag_value = properties[FLAG_FIELDS[label]]
@@ -441,6 +460,7 @@ def validate_observations(
                 "unavailable_above_freezing": ("N", False, False),
                 "unavailable_below_freezing": ("Y", False, False),
                 "unavailable_source_date_absent": ("", False, False),
+                "unavailable_source_date_blank": ("", False, False),
             }
             contract = status_contracts.get(item.observation_status)
             if contract is None:

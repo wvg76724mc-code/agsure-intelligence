@@ -5,7 +5,7 @@ This registry distinguishes implemented and planned connectors.
 
 ## ECCC historical daily station weather in v0.8
 
-Status: **implemented for a bounded 2024-01-01 through 2025-12-31 retrieval**
+Status: **implemented from 2024-01-01 through the latest eligible completed day**
 
 Authoritative route and documentation:
 
@@ -61,6 +61,25 @@ make the audited gaps explicit:
 | BOW ISLAND | 361 / 361 / 361 / 361 | 358 / 358 / 358 / 358 |
 | MEDICINE HAT RCS | 352 / 352 / 352 / 352 | 348 / 346 / 346 / 359 |
 
+The successful 2026-07-21 live refresh requested 201 current-year dates through
+2026-07-20. Available `maximum / minimum / mean / precipitation` counts were:
+
+| Station | 2026 year-to-date (201 requested days) | Latest available date |
+|---|---:|---|
+| CLARESHOLM | 180 / 180 / 180 / 180 | 2026-07-19 for all four elements |
+| LETHBRIDGE | 201 / 201 / 201 / 200 | 2026-07-20 for all four elements |
+| BROOKS | 197 / 197 / 197 / 197 | 2026-07-19 for all four elements |
+| BOW ISLAND | 200 / 200 / 200 / 200 | 2026-07-20 for all four elements |
+| MEDICINE HAT RCS | 183 / 182 / 182 / 196 | 2026-07-20 for all four elements |
+
+Claresholm and Brooks returned an all-selected-elements blank feature for
+2026-07-20. Lethbridge's one unavailable current-year precipitation value did
+not prevent a value on the coverage end. Medicine Hat RCS omitted seven whole
+dates in October 2024; each remains an explicit unavailable row per element.
+Across the full 2024-01-01–2026-07-20 vintage, every nonblank source flag was
+`M`; no trace or estimated flags occurred in this retrieval. These counts
+describe this retrieval vintage and can change when ECCC revises its archive.
+
 The stations are point observations selected for agricultural relevance,
 active status, geographic spread, official metadata, and recent availability.
 They do not define a Southern Alberta boundary and are not representative
@@ -90,19 +109,50 @@ no revision timestamp or marker. AgSure stores blank `release_date` with
 later retrieval; each immutable generation is a retrieval vintage, not a
 point-in-time revision archive.
 
-One request is made per configured station for metadata and one for daily data.
-The daily request uses `limit=1000`; the official UI warns that higher limits
-are not recommended. The approved maximum range is 731 days, so a valid response
-fits in one page. `numberMatched`, `numberReturned`, and feature count must agree;
+One request is made per configured station for metadata and one or more for
+daily data. Each daily request covers at most 731 days and uses `limit=1000`;
+the official UI warns that higher limits are not recommended. Longer artifact
+ranges are split into non-overlapping requests. `numberMatched`,
+`numberReturned`, and feature count must agree;
 pagination or truncation fails closed. The exact station/date/element range is
 bounded in code. Content type, exact property sets, identity, dates, coordinates,
 units, flags, duplicates, and response completeness are validated before the
 weather-only CURRENT pointer can change.
 
+The unattended-update boundary uses `America/Edmonton`. The latest eligible day
+is the calendar day immediately before the local as-of date. This deliberately
+excludes the current incomplete local day even if GeoMet has already created a
+blank feature. `--as-of-date` injects the local as-of date for deterministic
+runs. A station that has not published the requested completed day is not used
+to move the range backward: the omitted date and all four source elements remain
+explicitly unavailable in that station's rows and manifest statistics. If ECCC
+has created a feature but all four selected values and flags are null, AgSure
+records `unavailable_source_date_blank`; a fully absent feature remains
+`unavailable_source_date_absent`. A partially blank row without documented
+flags fails closed. Official `M` flags remain the distinct `missing` status.
+
+Every successful `--to-latest` retrieval is a fresh immutable vintage. Even an
+unchanged set of source hashes creates and publishes a new generation; a later
+source revision does the same. The generation preserves station and daily URLs,
+raw hashes, retrieval timestamp, requested coverage, omitted dates, latest
+available date and availability counts by element, status/flag counts, processed
+hash and generation ID. Publication occurs only after the complete generation
+has passed integrity checks. Older generations are never modified in place.
+
 The advertised daily JSON schema lists `SOURCE` as a property but does not mark
 it required; the live GeoJSON response omits it. The parser accepts exactly the
 audited live property set, with only this documented optional property allowed.
 Any other added or removed property fails closed.
+
+Live validation on 2026-07-21 found one further narrowly audited variation:
+features dated from 2026-04-13 can omit both `MAX_REL_HUMIDITY` and
+`MAX_REL_HUMIDITY_FLAG` while retaining the minimum-humidity pair and every
+identity, date, selected weather-element, flag, and geometry field. ECCC's
+collection schema lists the pair but declares no required-property array.
+AgSure does not ingest relative humidity. The parser therefore permits only the
+paired omission, independently of `SOURCE`; a single-field omission or removal
+of any other pinned field still fails closed. Offline fixtures cover both the
+accepted pair and rejected half-pair.
 
 ## Official Prairie crop reports in v0.7
 

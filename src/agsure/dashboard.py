@@ -27,7 +27,7 @@ from agsure.unified_overview import (
     UNAVAILABLE,
     build_overview,
 )
-from agsure.weather.artifact import read_artifact as read_weather
+from agsure.weather.artifact import coverage_summary, read_artifact as read_weather
 from agsure.weather.common import GDD_FORMULA
 from agsure.weather.config import STATIONS_BY_CLIMATE_ID
 
@@ -1059,6 +1059,7 @@ def show_weather() -> None:
     rows = _weather_rows()
     if rows is None:
         return
+    st.caption(coverage_summary(rows))
     station_id = _weather_station_selector(rows, key="weather_station")
     if station_id is None:
         st.info("Select an official station before choosing a date or period.")
@@ -1149,6 +1150,7 @@ def show_compact_weather() -> None:
     rows = _weather_rows()
     if rows is None:
         return
+    st.caption(coverage_summary(rows))
     station_id = _weather_station_selector(
         rows, key="unified_weather_station", label="Overview weather station"
     )

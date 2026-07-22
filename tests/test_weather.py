@@ -4,19 +4,22 @@ import io
 import json
 import os
 import shutil
+import sys
 from dataclasses import replace
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from email.message import Message
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from contextlib import redirect_stderr
 from unittest.mock import patch
 
 from agsure.analysis import calculate_supply_pressure
 from agsure.io import load_observations
 from agsure.weather import ingest as weather_ingest
 from agsure.weather.artifact import (
+    coverage_summary,
     current_pointer_path,
     publish_current_pointer,
     read_artifact,
@@ -176,6 +179,47 @@ class WeatherParsingTests(unittest.TestCase):
             {"unavailable_source_date_absent"},
         )
 
+    def test_publication_lag_at_range_end_remains_explicit(self) -> None:
+        source = payload("claresholm_daily_synthetic.json")
+        source["features"].pop()
+        source["numberMatched"] = source["numberReturned"] = 2
+        rows = parse_daily_response(
+            source, STATION, START, END, retrieved_at=RETRIEVED,
+            source_url=SOURCE_URL, generation="e" * 32,
+        )
+        lagged = [row for row in rows if row.reference_date == END.isoformat()]
+        self.assertEqual(len(lagged), 5)
+        self.assertEqual(
+            {row.observation_status for row in lagged if row.observation_origin == "source_published"},
+            {"unavailable_source_date_absent"},
+        )
+
+    def test_all_element_blank_source_row_is_publication_lag_not_missing(self) -> None:
+        source = payload("claresholm_daily_synthetic.json")
+        for label in (
+            "MAX_TEMPERATURE", "MIN_TEMPERATURE", "MEAN_TEMPERATURE",
+            "TOTAL_PRECIPITATION",
+        ):
+            source["features"][-1]["properties"][label] = None
+            source["features"][-1]["properties"][f"{label}_FLAG"] = None
+        rows = parse_daily_response(
+            source, STATION, START, END, retrieved_at=RETRIEVED,
+            source_url=SOURCE_URL, generation="1" * 32,
+        )
+        blank = [row for row in rows if row.reference_date == END.isoformat()]
+        self.assertEqual(
+            {row.observation_status for row in blank if row.observation_origin == "source_published"},
+            {"unavailable_source_date_blank"},
+        )
+        self.assertTrue(all(not row.raw_source_value for row in blank))
+
+        source["features"][-1]["properties"]["MAX_TEMPERATURE"] = 20
+        with self.assertRaisesRegex(ValueError, "Null MIN_TEMPERATURE"):
+            parse_daily_response(
+                source, STATION, START, END, retrieved_at=RETRIEVED,
+                source_url=SOURCE_URL, generation="1" * 32,
+            )
+
     def test_unknown_flags_malformed_schema_duplicates_and_contamination_fail(self) -> None:
         cases = []
         unknown = payload("claresholm_daily_synthetic.json")
@@ -200,6 +244,24 @@ class WeatherParsingTests(unittest.TestCase):
                     source, STATION, START, END, retrieved_at=RETRIEVED,
                     source_url=SOURCE_URL, generation="d" * 32,
                 )
+
+    def test_audited_paired_maximum_humidity_omission_only(self) -> None:
+        source = payload("claresholm_daily_synthetic.json")
+        for feature in source["features"]:
+            feature["properties"].pop("MAX_REL_HUMIDITY")
+            feature["properties"].pop("MAX_REL_HUMIDITY_FLAG")
+        rows = parse_daily_response(
+            source, STATION, START, END, retrieved_at=RETRIEVED,
+            source_url=SOURCE_URL, generation="f" * 32,
+        )
+        self.assertEqual(len(rows), 15)
+
+        source["features"][0]["properties"]["MAX_REL_HUMIDITY"] = None
+        with self.assertRaisesRegex(ValueError, "Unexpected ECCC daily schema"):
+            parse_daily_response(
+                source, STATION, START, END, retrieved_at=RETRIEVED,
+                source_url=SOURCE_URL, generation="f" * 32,
+            )
 
     def test_duplicate_normalized_key_fails(self) -> None:
         rows = parsed()
@@ -332,6 +394,97 @@ class WeatherPublicationTests(unittest.TestCase):
             self.assertEqual(current_pointer_path(output).read_bytes(), pointer_bytes)
             self.assertTrue(previous.directory.is_dir())
 
+    def test_unchanged_rerun_creates_a_new_immutable_retrieval_vintage(self) -> None:
+        station_bytes = (FIXTURES / "claresholm_station_synthetic.json").read_bytes()
+        daily_bytes = (FIXTURES / "claresholm_daily_synthetic.json").read_bytes()
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / "processed" / "weather.csv"
+            cache = root / "raw"
+            with patch.object(weather_ingest, "STATIONS", (STATION,)), patch(
+                "urllib.request.urlopen",
+                side_effect=[
+                    FakeResponse(station_bytes), FakeResponse(daily_bytes),
+                    FakeResponse(station_bytes), FakeResponse(daily_bytes),
+                ],
+            ):
+                weather_ingest.ingest(
+                    cache, output, start=START, to_latest=True,
+                    as_of_date=END + timedelta(days=1),
+                )
+                first = resolve_current_generation(output)
+                first_rows = read_artifact(output)
+                weather_ingest.ingest(
+                    cache, output, start=START, to_latest=True,
+                    as_of_date=END + timedelta(days=1),
+                )
+            second = resolve_current_generation(output)
+            self.assertNotEqual(first.generation, second.generation)
+            self.assertTrue(first.directory.is_dir())
+            self.assertEqual(
+                [row["raw_source_value"] for row in first_rows],
+                [row["raw_source_value"] for row in read_artifact(output)],
+            )
+
+    def test_later_source_revision_creates_new_vintage_without_changing_old(self) -> None:
+        station_bytes = (FIXTURES / "claresholm_station_synthetic.json").read_bytes()
+        original = payload("claresholm_daily_synthetic.json")
+        revised = payload("claresholm_daily_synthetic.json")
+        revised["features"][0]["properties"]["MAX_TEMPERATURE"] = 21.4
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / "processed" / "weather.csv"
+            cache = root / "raw"
+            with patch.object(weather_ingest, "STATIONS", (STATION,)), patch(
+                "urllib.request.urlopen",
+                side_effect=[
+                    FakeResponse(station_bytes), FakeResponse(json.dumps(original).encode()),
+                    FakeResponse(station_bytes), FakeResponse(json.dumps(revised).encode()),
+                ],
+            ):
+                weather_ingest.ingest(cache, output, start=START, end=END, force=True)
+                first = resolve_current_generation(output)
+                first_text = first.artifact.read_text(encoding="utf-8")
+                weather_ingest.ingest(cache, output, start=START, end=END, force=True)
+            second = resolve_current_generation(output)
+            self.assertNotEqual(first.generation, second.generation)
+            self.assertEqual(first.artifact.read_text(encoding="utf-8"), first_text)
+            maximum = next(
+                row for row in read_artifact(output)
+                if row["reference_date"] == START.isoformat()
+                and row["source_element_identifier"] == "001"
+            )
+            self.assertEqual(maximum["raw_source_value"], "21.4")
+
+    def test_partial_download_or_validation_failure_preserves_current(self) -> None:
+        station_bytes = (FIXTURES / "claresholm_station_synthetic.json").read_bytes()
+        daily_bytes = (FIXTURES / "claresholm_daily_synthetic.json").read_bytes()
+        broken = payload("claresholm_daily_synthetic.json")
+        broken["features"][0]["properties"]["UNEXPECTED"] = True
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / "processed" / "weather.csv"
+            cache = root / "raw"
+            with patch.object(weather_ingest, "STATIONS", (STATION,)), patch(
+                "urllib.request.urlopen",
+                side_effect=[FakeResponse(station_bytes), FakeResponse(daily_bytes)],
+            ):
+                weather_ingest.ingest(cache, output, start=START, end=END, force=True)
+            previous = resolve_current_generation(output)
+            previous_rows = read_artifact(output)
+            with patch.object(weather_ingest, "STATIONS", (STATION,)), patch(
+                "urllib.request.urlopen",
+                side_effect=[
+                    FakeResponse(station_bytes), FakeResponse(json.dumps(broken).encode())
+                ],
+            ):
+                with self.assertRaisesRegex(ValueError, "Unexpected ECCC daily schema"):
+                    weather_ingest.ingest(
+                        cache, output, start=START, end=END, force=True
+                    )
+            self.assertEqual(resolve_current_generation(output).generation, previous.generation)
+            self.assertEqual(read_artifact(output), previous_rows)
+
     def test_weather_never_enters_synthetic_score(self) -> None:
         self.assertTrue(parsed())
         barley = [
@@ -448,6 +601,70 @@ class WeatherDashboardTests(unittest.TestCase):
                     os.environ.pop("AGSURE_PROCESSED_DIR", None)
                 else:
                     os.environ["AGSURE_PROCESSED_DIR"] = previous
+
+    def test_current_year_is_labelled_partial_year_to_date(self) -> None:
+        summary = coverage_summary([
+            {"reference_date": "2026-01-01", "retrieved_at": RETRIEVED},
+            {"reference_date": "2026-07-20", "retrieved_at": RETRIEVED},
+        ])
+        self.assertIn("2026 partial year (year-to-date)", summary)
+        self.assertIn("Artifact source coverage: 2026-01-01 through 2026-07-20", summary)
+        self.assertIn("Retrieval vintage", summary)
+
+
+class WeatherDateAndCliTests(unittest.TestCase):
+    def test_normal_latest_completed_day_and_explicit_as_of_date(self) -> None:
+        self.assertEqual(
+            weather_ingest.latest_completed_day(as_of_date=date(2026, 7, 21)),
+            date(2026, 7, 20),
+        )
+        self.assertEqual(
+            weather_ingest.latest_completed_day(
+                now=datetime(2026, 7, 21, 18, tzinfo=timezone.utc)
+            ),
+            date(2026, 7, 20),
+        )
+
+    def test_timezone_boundary_excludes_current_local_blank_day(self) -> None:
+        before_midnight = datetime(2026, 7, 21, 5, 59, tzinfo=timezone.utc)
+        after_midnight = datetime(2026, 7, 21, 6, 1, tzinfo=timezone.utc)
+        self.assertEqual(
+            weather_ingest.latest_completed_day(now=before_midnight), date(2026, 7, 19)
+        )
+        self.assertEqual(
+            weather_ingest.latest_completed_day(now=after_midnight), date(2026, 7, 20)
+        )
+        url = weather_ingest.daily_url(
+            STATION, START, weather_ingest.latest_completed_day(now=after_midnight)
+        )
+        self.assertIn("2026-07-20", url)
+        self.assertNotIn("2026-07-21", url)
+
+    def test_year_and_leap_year_boundaries(self) -> None:
+        self.assertEqual(
+            weather_ingest.latest_completed_day(as_of_date=date(2025, 1, 1)),
+            date(2024, 12, 31),
+        )
+        self.assertEqual(
+            weather_ingest.latest_completed_day(as_of_date=date(2024, 3, 1)),
+            date(2024, 2, 29),
+        )
+        ranges = list(weather_ingest._request_ranges(date(2024, 1, 1), date(2026, 7, 20)))
+        self.assertEqual(ranges[0], (date(2024, 1, 1), date(2025, 12, 31)))
+        self.assertEqual(ranges[1], (date(2026, 1, 1), date(2026, 7, 20)))
+
+    def test_conflicting_cli_arguments_fail_clearly(self) -> None:
+        cases = (
+            (["weather", "--to-latest", "--end-date", "2026-07-20"], "cannot be combined"),
+            (["weather", "--as-of-date", "2026-07-21", "--end-date", "2026-07-20"], "requires --to-latest"),
+            (["weather"], "specify --end-date or use --to-latest"),
+        )
+        for argv, message in cases:
+            with self.subTest(argv=argv), patch.object(sys, "argv", argv):
+                errors = io.StringIO()
+                with redirect_stderr(errors), self.assertRaises(SystemExit):
+                    weather_ingest.main()
+                self.assertIn(message, errors.getvalue())
 
 
 class FakeResponse(io.BytesIO):
