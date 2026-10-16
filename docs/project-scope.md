@@ -1,13 +1,19 @@
-# AgSure Intelligence v0.8 scope
+# AgSure Intelligence v0.9 scope
 
 ## Decision question
 
-What station-specific historical weather context can official ECCC daily
-observations support without weakening the identities and guardrails
-established in v0.2–v0.7?
+What future cash bid would make storing a specific canola inventory financially
+equivalent to selling it now, given explicit user inputs and editable assumptions?
 
 ## Included
 
+- A canola sell-now versus store calculator using inventory, current cash bid,
+  storage period, financing, incremental storage, handling, shrink, incremental
+  insurance, and transport-cost differences.
+- An explicit break-even future cash bid, fully itemized carrying costs, and
+  scenario values above and below break-even.
+- Clearly labelled illustrative defaults that users may replace; no default is
+  represented as an observed farm, regional, or market value.
 - Barley, canola, spring wheat, durum wheat, and dry peas in the shared data
   pipeline and historical dashboard.
 - Barley only for the initial supply-pressure model.
@@ -56,9 +62,9 @@ established in v0.2–v0.7?
 - Weather-only immutable generations and `weather.CURRENT`, a dedicated
   station/date-gated dashboard, and a compact station/date-gated overview.
 
-## Excluded from v0.8
+## Excluded from v0.9
 
-- Cash-bid recommendations.
+- Live or scraped cash bids and cash-bid recommendations.
 - Futures or automated trading.
 - Contracts, payments, escrow, or blockchain.
 - Producer accounts or confidential data.

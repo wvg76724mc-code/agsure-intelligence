@@ -1,5 +1,5 @@
-from decimal import Decimal
 import os
+from decimal import Decimal
 from pathlib import Path
 
 import pandas as pd
@@ -16,6 +16,7 @@ from agsure.crop_conditions.artifact import (
     read_artifact as read_crop_conditions,
     select_series as select_regional_series,
 )
+from agsure.grain_decision import StorageDecisionInputs, calculate_storage_decision
 from agsure.io import load_observations
 from agsure.stocks import compare_same_snapshot
 from agsure.statcan_supply_disposition import MEASURES as SUPPLY_DISPOSITION_MEASURES
@@ -1373,12 +1374,193 @@ def show_unified_overview() -> None:
         )
 
 
+def show_sell_or_store() -> None:
+    st.subheader("Canola sell-now versus store analysis")
+    st.write(
+        "Enter the information you have. AgSure supplies editable starting "
+        "assumptions for the information that is usually missing."
+    )
+    st.warning(
+        "This is a financial comparison, not a price forecast or instruction to "
+        "sell or store. The bid is entered by the user and is not verified live."
+    )
+
+    with st.form("sell_or_store"):
+        first, second, third = st.columns(3)
+        quantity = first.number_input(
+            "Canola available (bushels)", min_value=1.0, value=20000.0, step=500.0
+        )
+        current_bid = second.number_input(
+            "Current cash bid ($/bu)", min_value=0.01, value=14.00, step=0.01,
+            help="Use the actual cash bid offered for the relevant delivery period.",
+        )
+        months = third.number_input(
+            "Proposed storage period (months)",
+            min_value=0.25,
+            value=3.0,
+            step=0.25,
+        )
+        location = st.text_input(
+            "Farm or delivery area (context only)",
+            placeholder="Example: Swift Current, Saskatchewan",
+        )
+
+        st.markdown("#### Assumptions")
+        st.caption(
+            "Starting values are illustrative on-farm assumptions, not observed "
+            "costs or provincial averages. Replace any figure you know."
+        )
+        left, middle, right = st.columns(3)
+        financing_rate = left.number_input(
+            "Annual financing/opportunity rate (%)",
+            min_value=0.0,
+            value=8.0,
+            step=0.25,
+        )
+        storage_monthly = middle.number_input(
+            "Incremental storage cost ($/bu/month)",
+            min_value=0.0,
+            value=0.025,
+            step=0.005,
+            format="%.3f",
+        )
+        handling = right.number_input(
+            "Additional handling cost ($/bu)",
+            min_value=0.0,
+            value=0.05,
+            step=0.01,
+        )
+        left, middle, right = st.columns(3)
+        shrink = left.number_input(
+            "Expected shrink/quality loss (%)",
+            min_value=0.0,
+            max_value=99.0,
+            value=0.30,
+            step=0.10,
+        )
+        insurance = middle.number_input(
+            "Additional insurance ($/bu/month)",
+            min_value=0.0,
+            value=0.0,
+            step=0.005,
+            format="%.3f",
+            help="Use zero when the existing policy cost does not change.",
+        )
+        transport_difference = right.number_input(
+            "Future-minus-current transport cost ($/bu)",
+            value=0.0,
+            step=0.01,
+            help=(
+                "Positive means the later delivery costs more; negative means it "
+                "costs less."
+            ),
+        )
+        submitted = st.form_submit_button("Calculate break-even bid", type="primary")
+
+    if not submitted:
+        st.info(
+            "Start with the three main inputs. Review the labelled assumptions, "
+            "then calculate the bid required for storage to break even."
+        )
+        return
+
+    inputs = StorageDecisionInputs(
+        quantity_bushels=Decimal(str(quantity)),
+        current_bid_per_bushel=Decimal(str(current_bid)),
+        storage_months=Decimal(str(months)),
+        annual_financing_rate_pct=Decimal(str(financing_rate)),
+        storage_cost_per_bushel_month=Decimal(str(storage_monthly)),
+        handling_cost_per_bushel=Decimal(str(handling)),
+        shrink_pct=Decimal(str(shrink)),
+        incremental_insurance_per_bushel_month=Decimal(str(insurance)),
+        future_transport_difference_per_bushel=Decimal(str(transport_difference)),
+    )
+    result = calculate_storage_decision(inputs)
+    location_label = location.strip() or "Location not supplied"
+
+    first, second, third, fourth = st.columns(4)
+    first.metric("Sell-now gross value", f"${result.sell_now_value:,.0f}")
+    second.metric("Total cost of waiting", f"${result.total_carrying_cost:,.0f}")
+    third.metric("Break-even future bid", f"${result.break_even_future_bid:,.2f}/bu")
+    fourth.metric(
+        "Required bid increase",
+        f"${result.required_bid_increase:,.2f}/bu",
+        f"{result.required_bid_increase_pct:,.1f}%",
+    )
+    st.success(
+        f"For {location_label}, storage over {months:g} months breaks even at "
+        f"approximately ${result.break_even_future_bid:,.2f}/bu under the entered "
+        "assumptions. A lower future bid leaves selling now ahead; a higher bid "
+        "leaves storage ahead."
+    )
+
+    st.markdown("#### What creates the break-even increase")
+    cost_rows = [
+        ("Financing or opportunity cost", result.financing_cost),
+        ("Incremental storage", result.storage_cost),
+        ("Additional handling", result.handling_cost),
+        ("Additional insurance", result.insurance_cost),
+        ("Transport-cost difference", result.transport_difference),
+    ]
+    st.dataframe(
+        pd.DataFrame(
+            {
+                "cost component": [name for name, _ in cost_rows],
+                "amount": [float(amount) for _, amount in cost_rows],
+            }
+        ),
+        column_config={"amount": st.column_config.NumberColumn(format="$%.2f")},
+        hide_index=True,
+        width="stretch",
+    )
+
+    st.markdown("#### Future-bid scenarios")
+    scenario_bids = sorted(
+        {
+            inputs.current_bid_per_bushel,
+            result.break_even_future_bid - Decimal("0.50"),
+            result.break_even_future_bid,
+            result.break_even_future_bid + Decimal("0.50"),
+        }
+    )
+    scenario_rows = []
+    for bid in scenario_bids:
+        if bid <= 0:
+            continue
+        advantage = result.advantage_at(bid)
+        scenario_rows.append(
+            {
+                "future bid ($/bu)": float(bid),
+                "storage advantage ($)": float(advantage),
+                "financially stronger at that bid": (
+                    "Storage" if advantage > 0 else "Sell now"
+                    if advantage < 0 else "Break-even"
+                ),
+            }
+        )
+    st.dataframe(
+        pd.DataFrame(scenario_rows),
+        column_config={
+            "future bid ($/bu)": st.column_config.NumberColumn(format="$%.2f"),
+            "storage advantage ($)": st.column_config.NumberColumn(format="$%.2f"),
+        },
+        hide_index=True,
+        width="stretch",
+    )
+    st.caption(
+        f"Saleable inventory after entered shrink: {result.retained_bushels:,.0f} bu. "
+        "Results use simple interest and nominal Canadian dollars. Fixed costs that "
+        "do not change between alternatives are intentionally excluded."
+    )
+
+
 st.set_page_config(page_title="AgSure Intelligence", page_icon="🌾", layout="wide")
 st.title("AgSure Intelligence")
 source = st.selectbox(
-    "Data source",
+    "AgSure tool",
     options=(
         "unified",
+        "sell-or-store",
         "synthetic",
         "statcan-production",
         "statcan-stocks",
@@ -1388,6 +1570,7 @@ source = st.selectbox(
         "weather",
     ),
     format_func=lambda value: {
+        "sell-or-store": "Sell or store grain",
         "unified": "Unified commodity overview",
         "synthetic": "Synthetic demonstration data",
         "statcan-production": "Official Statistics Canada crop production",
@@ -1401,7 +1584,9 @@ source = st.selectbox(
     }[value],
 )
 
-if source == "unified":
+if source == "sell-or-store":
+    show_sell_or_store()
+elif source == "unified":
     show_unified_overview()
 elif source == "synthetic":
     show_synthetic()

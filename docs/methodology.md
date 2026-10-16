@@ -282,6 +282,34 @@ pressure. It does not directly predict price or basis.
 Before commercial use, weights must be backtested against out-of-sample
 production and basis outcomes with documented error metrics.
 
+## Sell-now versus store decision economics (v0.9)
+
+The first decision tool compares two alternatives at the end of a user-selected
+storage period. The current bid is supplied by the user and is not retrieved,
+verified, or represented as a market-wide bid. The calculation uses only costs
+that change because the sale is delayed; fixed costs common to both alternatives
+are excluded.
+
+```text
+sell-now value = current bushels * current cash bid
+financing cost = sell-now value * annual rate * storage months / 12
+retained bushels = current bushels * (1 - shrink percentage)
+total carrying cost = financing + storage + handling + incremental insurance
+                      + future-minus-current transport difference
+break-even future bid = (sell-now value + total carrying cost)
+                        / retained bushels
+```
+
+The comparison treats sale proceeds today as able to reduce debt or earn the
+entered opportunity rate. Interest is simple interest. Shrink is applied once to
+saleable inventory. A positive transport difference means future delivery costs
+more than current delivery. All calculations use `Decimal` arithmetic.
+
+The interface provides illustrative starting assumptions only because farm-level
+cost records are often incomplete at decision time. They are not observed
+regional averages. The result is conditional on the entered assumptions and is
+neither a price forecast nor a recommendation to sell, store, bid, or contract.
+
 ## Official station weather and daily GDD (v0.8)
 
 Official daily maximum, minimum, mean, and total precipitation remain separate

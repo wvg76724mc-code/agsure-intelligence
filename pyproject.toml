@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agsure-intelligence"
-version = "0.8.0"
-description = "Transparent Prairie crop market-intelligence foundation"
+version = "0.9.0"
+description = "Transparent Prairie agricultural financial intelligence"
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [{ name = "Roman Irodenko" }]

@@ -1,8 +1,10 @@
 # AgSure Intelligence
 
 AgSure Intelligence is a transparent, source-traceable agricultural market
-intelligence project. Version 0.8 tracks five Prairie crops and adds a separate
-official ECCC daily station-weather vertical:
+financial-intelligence project. Version 0.9 begins the transition from a data
+dashboard to decision economics while retaining the official-data foundation.
+It tracks five Prairie crops and a separate official ECCC daily station-weather
+vertical:
 
 - Barley
 - Canola
@@ -15,7 +17,13 @@ Barley is the first fully implemented analytical vertical. It asks:
 > Is the Southern Alberta barley supply outlook becoming tighter or more
 > abundant than its recent historical baseline?
 
-The dashboard opens on a unified official commodity overview and adds an
+The first decision tool compares selling canola now with storing it for a
+user-selected period. It calculates the future cash bid required for storage to
+break even after financing, incremental storage, handling, shrink, incremental
+insurance, and transport-cost differences. Inputs and assumptions remain
+visible and editable; AgSure does not supply a live bid or a price forecast.
+
+The dashboard retains a unified official commodity overview and adds an
 official weekly regional crop-conditions slice while retaining
 the synthetic demonstration and every detailed production, stocks,
 supply-and-disposition, and stocks-to-use view. Official observations and
@@ -24,6 +32,12 @@ signals, recommendations, or validated predictors.
 
 ## What works now
 
+- Calculates a canola sell-now versus store break-even from three primary user
+  inputs: inventory, current cash bid, and proposed storage period.
+- Supplies clearly labelled illustrative assumptions for commonly unavailable
+  costs, permits every assumption to be replaced, exposes each cost component,
+  and shows future-bid scenarios without describing either alternative as a
+  recommendation.
 - Ingests official ECCC GeoMet daily maximum, minimum, mean, and total
   precipitation for five exact Southern Alberta Climate IDs from 2024-01-01
   through a runtime-selected completed day, including current-year-to-date
