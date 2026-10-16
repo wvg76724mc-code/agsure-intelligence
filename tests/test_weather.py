@@ -523,7 +523,10 @@ class WeatherDashboardTests(unittest.TestCase):
                 for station in STATIONS:
                     with self.subTest(station=station.climate_id):
                         app = AppTest.from_file("src/agsure/dashboard.py").run(timeout=30)
-                        app.selectbox[0].set_value("weather").run(timeout=30)
+                        app.radio(key="main_area").set_value("research").run(timeout=30)
+                        app.selectbox(key="research_view").set_value("weather").run(
+                            timeout=30
+                        )
                         app.selectbox(key="weather_station").set_value(
                             station.climate_id
                         ).run(timeout=30)
@@ -553,7 +556,8 @@ class WeatherDashboardTests(unittest.TestCase):
             os.environ["AGSURE_PROCESSED_DIR"] = str(root)
             try:
                 app = AppTest.from_file("src/agsure/dashboard.py").run(timeout=30)
-                app.selectbox[0].set_value("weather").run(timeout=30)
+                app.radio(key="main_area").set_value("research").run(timeout=30)
+                app.selectbox(key="research_view").set_value("weather").run(timeout=30)
                 app.selectbox(key="weather_station").set_value("3031640").run(timeout=30)
                 app.selectbox(key="weather_start_3031640").set_value(
                     "2025-06-03"
@@ -583,6 +587,7 @@ class WeatherDashboardTests(unittest.TestCase):
             os.environ["AGSURE_PROCESSED_DIR"] = str(root)
             try:
                 app = AppTest.from_file("src/agsure/dashboard.py").run(timeout=30)
+                app.radio(key="main_area").set_value("market-context").run(timeout=30)
                 self.assertIsNone(app.selectbox(key="unified_weather_station").value)
                 self.assertTrue(
                     any("Select an official weather station" in item.value for item in app.info)

@@ -224,11 +224,14 @@ class UnifiedDashboardAppTests(unittest.TestCase):
                         app = AppTest.from_file("src/agsure/dashboard.py").run(
                             timeout=30
                         )
+                        app.radio(key="main_area").set_value("market-context").run(
+                            timeout=30
+                        )
                         app.selectbox(key="unified_commodity").set_value(
                             commodity
                         ).run(timeout=30)
                         self.assertEqual(list(app.exception), [])
-                        self.assertEqual(app.selectbox[0].value, "unified")
+                        self.assertEqual(app.radio(key="main_area").value, "market-context")
                         if commodity == "spring-wheat":
                             self.assertTrue(
                                 any(

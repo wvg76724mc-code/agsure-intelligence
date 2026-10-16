@@ -14,6 +14,11 @@ equivalent to selling it now, given explicit user inputs and editable assumption
   scenario values above and below break-even.
 - Clearly labelled illustrative defaults that users may replace; no default is
   represented as an observed farm, regional, or market value.
+- Three primary interface areas: Decisions, Market context, and Data &
+  methodology. Specialist source views and synthetic demonstrations remain in
+  the research area rather than the ordinary decision path.
+- Recent market context defaults to the latest 15 published observations while
+  retaining an explicit complete-history control. No historical row is deleted.
 - Barley, canola, spring wheat, durum wheat, and dry peas in the shared data
   pipeline and historical dashboard.
 - Barley only for the initial supply-pressure model.

@@ -759,6 +759,18 @@ def _series_chart(series: SeriesView, title: str) -> None:
         _show_unavailable(series)
         return
     st.subheader(title)
+    show_complete_history = st.toggle(
+        "Show complete history",
+        value=False,
+        key=f"complete_history_{title}",
+        help="Recent context shows the latest 15 published observations.",
+    )
+    if not show_complete_history and len(chart_frame) > 15:
+        chart_frame = chart_frame.tail(15)
+        st.caption(
+            "Showing the latest 15 published observations. Enable complete history "
+            "for the full audited series."
+        )
     figure = px.line(
         chart_frame,
         x="reference_period",
@@ -1217,47 +1229,48 @@ def show_unified_overview() -> None:
 
     stock_type = None
     stock_snapshot = None
-    if choices.stock_type_options:
-        stock_type = st.selectbox(
-            "Stocks type",
-            options=choices.stock_type_options,
-            index=choices.stock_type_options.index(choices.stock_type),
-            key="unified_stock_type",
-        )
-        stock_choices = build_overview(
-            paths, commodity, geography, stock_type=stock_type
-        )
-        if stock_choices.stock_snapshot_options:
-            stock_snapshot = st.selectbox(
-                "Stocks comparison period",
-                options=stock_choices.stock_snapshot_options,
-                index=stock_choices.stock_snapshot_options.index(
-                    stock_choices.stock_snapshot
-                ),
-                key="unified_stock_snapshot",
-            )
-
     supply_measure = None
     supply_snapshot = None
-    if choices.supply_measure_options:
-        supply_measure = st.selectbox(
-            "Supply-and-disposition measure",
-            options=choices.supply_measure_options,
-            index=choices.supply_measure_options.index(choices.supply_measure),
-            key="unified_supply_measure",
-        )
-        supply_choices = build_overview(
-            paths, commodity, geography, supply_measure=supply_measure
-        )
-        if supply_choices.supply_snapshot_options:
-            supply_snapshot = st.selectbox(
-                "Supply-and-disposition comparison period",
-                options=supply_choices.supply_snapshot_options,
-                index=supply_choices.supply_snapshot_options.index(
-                    supply_choices.supply_snapshot
-                ),
-                key="unified_supply_snapshot",
+    with st.expander("Advanced series selections"):
+        if choices.stock_type_options:
+            stock_type = st.selectbox(
+                "Stocks type",
+                options=choices.stock_type_options,
+                index=choices.stock_type_options.index(choices.stock_type),
+                key="unified_stock_type",
             )
+            stock_choices = build_overview(
+                paths, commodity, geography, stock_type=stock_type
+            )
+            if stock_choices.stock_snapshot_options:
+                stock_snapshot = st.selectbox(
+                    "Stocks comparison period",
+                    options=stock_choices.stock_snapshot_options,
+                    index=stock_choices.stock_snapshot_options.index(
+                        stock_choices.stock_snapshot
+                    ),
+                    key="unified_stock_snapshot",
+                )
+
+        if choices.supply_measure_options:
+            supply_measure = st.selectbox(
+                "Supply-and-disposition measure",
+                options=choices.supply_measure_options,
+                index=choices.supply_measure_options.index(choices.supply_measure),
+                key="unified_supply_measure",
+            )
+            supply_choices = build_overview(
+                paths, commodity, geography, supply_measure=supply_measure
+            )
+            if supply_choices.supply_snapshot_options:
+                supply_snapshot = st.selectbox(
+                    "Supply-and-disposition comparison period",
+                    options=supply_choices.supply_snapshot_options,
+                    index=supply_choices.supply_snapshot_options.index(
+                        supply_choices.supply_snapshot
+                    ),
+                    key="unified_supply_snapshot",
+                )
 
     try:
         overview = build_overview(
@@ -1556,52 +1569,67 @@ def show_sell_or_store() -> None:
 
 st.set_page_config(page_title="AgSure Intelligence", page_icon="🌾", layout="wide")
 st.title("AgSure Intelligence")
-source = st.selectbox(
-    "AgSure tool",
-    options=(
-        "unified",
-        "sell-or-store",
-        "synthetic",
-        "statcan-production",
-        "statcan-stocks",
-        "statcan-supply-disposition",
-        "statcan-stocks-to-use",
-        "crop-conditions",
-        "weather",
-    ),
+area = st.radio(
+    "Area",
+    options=("decisions", "market-context", "research"),
     format_func=lambda value: {
-        "sell-or-store": "Sell or store grain",
-        "unified": "Unified commodity overview",
-        "synthetic": "Synthetic demonstration data",
-        "statcan-production": "Official Statistics Canada crop production",
-        "statcan-stocks": "Official Statistics Canada crop stocks",
-        "statcan-supply-disposition": (
-            "Official Statistics Canada supply and disposition"
-        ),
-        "statcan-stocks-to-use": "Official stocks-to-use",
-        "crop-conditions": "Official regional crop conditions",
-        "weather": "Official Southern Alberta station weather",
+        "decisions": "Decisions",
+        "market-context": "Market context",
+        "research": "Data & methodology",
     }[value],
+    horizontal=True,
+    key="main_area",
 )
 
-if source == "sell-or-store":
+if area == "decisions":
     show_sell_or_store()
-elif source == "unified":
+elif area == "market-context":
     show_unified_overview()
-elif source == "synthetic":
-    show_synthetic()
-elif source == "statcan-production":
-    show_statcan_production()
-elif source == "statcan-stocks":
-    show_statcan_stocks()
-elif source == "statcan-supply-disposition":
-    show_statcan_supply_disposition()
-elif source == "statcan-stocks-to-use":
-    show_statcan_stocks_to_use()
-elif source == "crop-conditions":
-    show_crop_conditions()
 else:
-    show_weather()
+    st.subheader("Data and methodology")
+    st.caption(
+        "Specialist source views, complete records, and development demonstrations. "
+        "These are retained for audit and research rather than everyday decisions."
+    )
+    source = st.selectbox(
+        "Research view",
+        options=(
+            "synthetic",
+            "statcan-production",
+            "statcan-stocks",
+            "statcan-supply-disposition",
+            "statcan-stocks-to-use",
+            "crop-conditions",
+            "weather",
+        ),
+        format_func=lambda value: {
+            "synthetic": "Synthetic demonstration data",
+            "statcan-production": "Official Statistics Canada crop production",
+            "statcan-stocks": "Official Statistics Canada crop stocks",
+            "statcan-supply-disposition": (
+                "Official Statistics Canada supply and disposition"
+            ),
+            "statcan-stocks-to-use": "Official stocks-to-use",
+            "crop-conditions": "Official regional crop conditions",
+            "weather": "Official Southern Alberta station weather",
+        }[value],
+        key="research_view",
+    )
+
+    if source == "synthetic":
+        show_synthetic()
+    elif source == "statcan-production":
+        show_statcan_production()
+    elif source == "statcan-stocks":
+        show_statcan_stocks()
+    elif source == "statcan-supply-disposition":
+        show_statcan_supply_disposition()
+    elif source == "statcan-stocks-to-use":
+        show_statcan_stocks_to_use()
+    elif source == "crop-conditions":
+        show_crop_conditions()
+    else:
+        show_weather()
 
 with st.expander("Methodology and limitations"):
     st.markdown((ROOT / "docs" / "methodology.md").read_text(encoding="utf-8"))

@@ -67,7 +67,6 @@ class StorageDecisionDashboardTests(unittest.TestCase):
 
         dashboard = Path(__file__).parents[1] / "src" / "agsure" / "dashboard.py"
         app = AppTest.from_file(str(dashboard)).run(timeout=30)
-        app.selectbox[0].set_value("sell-or-store").run(timeout=30)
         app.button[0].click().run(timeout=30)
 
         self.assertEqual(list(app.exception), [])

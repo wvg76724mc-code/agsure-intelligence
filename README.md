@@ -30,6 +30,12 @@ supply-and-disposition, and stocks-to-use view. Official observations and
 calculations are displayed for monitoring only; they are not forecasts, trading
 signals, recommendations, or validated predictors.
 
+The interface is organized into three areas: Decisions, Market context, and
+Data & methodology. Decisions is the default landing area. Specialist source
+views and the synthetic demonstration are kept in the research area. Market
+charts show the latest 15 published observations by default, with complete
+audited history available on demand.
+
 ## What works now
 
 - Calculates a canola sell-now versus store break-even from three primary user

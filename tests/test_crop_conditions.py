@@ -626,7 +626,10 @@ class CropConditionDashboardTests(unittest.TestCase):
                     for commodity in commodities:
                         with self.subTest(province=province, commodity=commodity):
                             app = AppTest.from_file("src/agsure/dashboard.py").run(timeout=30)
-                            app.selectbox[0].set_value("crop-conditions").run(timeout=30)
+                            app.radio(key="main_area").set_value("research").run(timeout=30)
+                            app.selectbox(key="research_view").set_value(
+                                "crop-conditions"
+                            ).run(timeout=30)
                             app.selectbox(key="regional_province").set_value(province).run(timeout=30)
                             app.selectbox(key=f"regional_commodity_{province}").set_value(
                                 commodity
@@ -653,7 +656,10 @@ class CropConditionDashboardTests(unittest.TestCase):
             os.environ["AGSURE_PROCESSED_DIR"] = str(root)
             try:
                 app = AppTest.from_file("src/agsure/dashboard.py").run(timeout=30)
-                app.selectbox[0].set_value("crop-conditions").run(timeout=30)
+                app.radio(key="main_area").set_value("research").run(timeout=30)
+                app.selectbox(key="research_view").set_value("crop-conditions").run(
+                    timeout=30
+                )
                 app.selectbox(key="regional_region_Alberta").set_value("south").run(timeout=30)
                 period_key = (
                     "regional_reporting_period_Alberta_south_barley_crop-condition_"
@@ -682,7 +688,10 @@ class CropConditionDashboardTests(unittest.TestCase):
             os.environ["AGSURE_PROCESSED_DIR"] = str(root)
             try:
                 app = AppTest.from_file("src/agsure/dashboard.py").run(timeout=30)
-                app.selectbox[0].set_value("crop-conditions").run(timeout=30)
+                app.radio(key="main_area").set_value("research").run(timeout=30)
+                app.selectbox(key="research_view").set_value("crop-conditions").run(
+                    timeout=30
+                )
                 app.selectbox(key="regional_region_Alberta").set_value("peace").run(timeout=30)
                 app.selectbox(key="regional_commodity_Alberta").set_value("dry-peas").run(
                     timeout=30
@@ -733,6 +742,7 @@ class CropConditionDashboardTests(unittest.TestCase):
             os.environ["AGSURE_PROCESSED_DIR"] = str(root)
             try:
                 app = AppTest.from_file("src/agsure/dashboard.py").run(timeout=30)
+                app.radio(key="main_area").set_value("market-context").run(timeout=30)
                 self.assertIsNone(app.selectbox(key="unified_regional_province").value)
                 self.assertTrue(
                     any("Select a province" in item.value for item in app.info)
